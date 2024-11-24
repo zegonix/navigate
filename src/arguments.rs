@@ -1,23 +1,21 @@
-use clap:: {Parser, Args, Subcommand};
+use clap::{Parser, Args, Subcommand};
+
 
 /// implements stack for cd wrapper script
-#[derive(Debug, Parser)]
-#[clap(author, version, about)]
-pub struct CommandArgs
-{
-
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about=None)]
+pub struct Arguments {
     /// subcommand
-    #[clap(subcommand)]
-    action: Action,
+    #[command(subcommand)]
+    pub action: Action,
 
     /// process id of parent shell
-    #[arg(long="pid")]
-    pid: u32,
+    #[arg(short, long)]
+    pub pid: u32,
 }
 
 #[derive(Debug, Clone, Subcommand)]
-pub enum Action
-{
+pub enum Action {
     /// navigate to path and add current path to the stack
     push(PushArgs),
 
@@ -27,13 +25,14 @@ pub enum Action
     /// display stack
     stack(StackArgs),
 
-    // bookmark(BookmarkArgs),
+    /// navigate to bookmark and add current path to the stack
+    bookmark(BookmarkArgs),
 }
 
 #[derive(Debug, Clone, Args)]
-pub struct PushArgs
-{
+pub struct PushArgs {
     /// show stack
+    #[arg(short, long)]
     show_stack: Option<bool>,
 
     /// change to <path>
@@ -41,21 +40,26 @@ pub struct PushArgs
 }
 
 #[derive(Debug, Clone, Args)]
-pub struct PopArgs
-{
+pub struct PopArgs {
     /// show stack
     #[arg(short, long)]
     show_stack: Option<bool>,
 }
 
 #[derive(Debug, Clone, Args)]
-pub struct StackArgs
-{
+pub struct StackArgs {
     /// hide entry numbers
-    #[arg(short, long)]
+    #[arg(short='n', long)]
     hide_numbers: Option<bool>,
 
     /// show n entries
     #[arg(short, long="lines")]
     lines: Option<u32>,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct BookmarkArgs {
+    /// show stack
+    #[arg(short, long)]
+    show_stack: Option<bool>,
 }

@@ -1,11 +1,13 @@
-mod args;
+mod arguments;
+mod stack;
 
-use std::env;
 use clap::Parser;
-use args::CommandArgs;
+use arguments::Arguments;
+use stack::Stack;
 
 
-fn main()
-{
-    let args = CommandArgs::parse();
+fn main() {
+    let args = Arguments::parse();
+
+    let stack = Stack::new(args.pid);
 }
