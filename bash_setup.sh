@@ -4,18 +4,15 @@ export PATH="$PATH:$PWD/target/debug/"
 pid=( $(ps -o ppid) )
 arg_pid=" --pid ${pid[-2]} "
 
-nav() {
-    cd "$(navigate ${arg_pid} $*)"
-}
 
 push() {
-    cd "$(navigate push ${arg_pid} $*)"
+    \builtin cd -- "$(navigate ${arg_pid} push $@)"
 }
 
 pop() {
-    cd "$(navigate pop ${arg_pid} $*)"
+    \builtin cd -- "$(navigate ${arg_pid} pop $@)"
 }
 
 stack() {
-    "navigate stack ${arg_pid}"
+	echo "$(navigate ${arg_pid} show $*)"
 }
