@@ -3,6 +3,7 @@ mod stack;
 
 use std::io::{Result, Error, ErrorKind};
 use std::path::PathBuf;
+use std::env::current_dir;
 use clap::{FromArgMatches, Parser};
 use arguments::*;
 use stack::Stack;
@@ -22,7 +23,8 @@ fn main() -> Result<()> {
 }
 
 pub fn handle_push (args: &PushArgs, stack: &mut Stack) -> Result<()> { // TODO: handle arguments
-    stack.push_entry(&args.path)?;
+    let current_path = current_dir()?;
+    stack.push_entry(&current_path)?;
     println!("{}", args.path.to_str().unwrap());
     return Ok(());
 }
