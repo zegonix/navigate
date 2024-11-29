@@ -14,5 +14,5 @@ pop() {
 }
 
 stack() {
-	echo "$(navigate ${arg_pid} show $*)"
+	echo "$(navigate ${arg_pid} stack $@)"
 }

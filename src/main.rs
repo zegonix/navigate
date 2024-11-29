@@ -1,48 +1,66 @@
 mod arguments;
+mod config;
 mod stack;
 
-use std::io::{Result, Error, ErrorKind};
-use std::path::PathBuf;
-use std::env::current_dir;
-use clap::{FromArgMatches, Parser};
 use arguments::*;
+use clap::{Parser};
 use stack::Stack;
-
+use std::env::current_dir;
+use std::io::{Error, Result};
 
 fn main() -> Result<()> {
     let args = Arguments::parse();
-    let mut stack = Stack::new(args.pid).expect("failed to build stack");
+    let mut stack = match Stack::new(args.pid) {
+        Ok(stack) => stack,
+        Err(_) => return Err(Error::other("-- failed to build stack")),
+    };
 
-    return match args.action {
+    match args.action {
         Action::push(push_args) => handle_push(&push_args, &mut stack),
         Action::pop(pop_args) => handle_pop(&pop_args, &mut stack),
-        Action::show(show_args) => handle_show(&show_args, &mut stack),
+        Action::stack(stack_args) => handle_stack(&stack_args, &mut stack),
         Action::bookmark(bookmark_args) => handle_bookmark(&bookmark_args, &mut stack),
-        _ => Err(Error::new(ErrorKind::Other, "unknown subcommand")),
-    };
+    }
 }
 
-pub fn handle_push (args: &PushArgs, stack: &mut Stack) -> Result<()> { // TODO: handle arguments
+pub fn handle_push(args: &PushArgs, stack: &mut Stack) -> Result<()> {
+    // TODO: handle arguments
+    if !args.path.is_dir() {
+        return Err(Error::other("-- invalid path argument"));
+    }
     let current_path = current_dir()?;
     stack.push_entry(&current_path)?;
     println!("{}", args.path.to_str().unwrap());
-    return Ok(());
+    Ok(())
 }
 
-pub fn handle_pop (args: &PopArgs, stack: &mut Stack) -> Result<()> { // TODO: handle arguments
+pub fn handle_pop(args: &PopArgs, stack: &mut Stack) -> Result<()> {
+    // TODO: handle arguments
     let path = stack.pop_entry()?;
     println!("{}", path.to_str().unwrap());
-    return Ok(());
+    Ok(())
 }
 
-pub fn handle_show (args: &ShowArgs, stack: &mut Stack) -> Result<()> { // TODO: handle arguments
-    let output = stack.get_stack()?;
-    for item in output {
-        println!("{}", item.to_str().unwrap());
+pub fn handle_stack(args: &StackArgs, stack: &mut Stack) -> Result<()> {
+    // TODO: handle arguments
+    if args.stack_action.is_some() {
+        match args.stack_action.clone().unwrap() {
+            StackAction::clear(_) => return stack.clear_stack(),
+        }
     }
-    return Ok(());
+    // retrieve stack
+    let output = stack.get_stack()?;
+    if output.is_empty() {
+        return Err(Error::other("-- the stack is empty"));
+    }
+    // print stack to standard output
+    for (n, item) in output.iter().rev().enumerate() {
+        println!("{} {}", n, item.to_str().unwrap());
+    }
+    Ok(())
 }
 
-pub fn handle_bookmark (args: &BookmarkArgs, stack: &mut Stack) -> Result<()> { // TODO: handle arguments
-    return Ok(());
+pub fn handle_bookmark(args: &BookmarkArgs, stack: &mut Stack) -> Result<()> {
+    // TODO: handle arguments
+    Ok(())
 }

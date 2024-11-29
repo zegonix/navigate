@@ -1,5 +1,5 @@
-use clap::{Parser, Args, Subcommand};
-use std::path::PathBuf;
+use clap::{Args, Parser, Subcommand};
+use std::{path::PathBuf};
 
 
 /// implements stack for cd wrapper script
@@ -16,6 +16,7 @@ pub struct Arguments {
 }
 
 #[derive(Debug, Clone, Subcommand)]
+#[allow(non_camel_case_types)]
 pub enum Action {
     /// navigate to path and add current path to the stack
     push(PushArgs),
@@ -24,7 +25,7 @@ pub enum Action {
     pop(PopArgs),
 
     /// show stack
-    show(ShowArgs),
+    stack(StackArgs),
 
     /// navigate to bookmark and add current path to the stack
     bookmark(BookmarkArgs),
@@ -45,18 +46,35 @@ pub struct PopArgs {
     /// show stack
     #[arg(short, long)]
     pub show_stack: Option<bool>,
+
+    /// pop multiple entries and navigate to last retrieved path
+    pub num_entries: Option<usize>,
 }
 
 #[derive(Debug, Clone, Args)]
-pub struct ShowArgs {
+pub struct StackArgs {
     /// hide entry numbers
-    #[arg(short='n', long)]
+    #[arg(short = 'n', long)]
     pub hide_numbers: Option<bool>,
 
     /// show n entries
-    #[arg(short, long="lines")]
+    #[arg(short, long = "lines")]
     pub lines: Option<u32>,
+
+    /// stack subcommand
+    #[command(subcommand)]
+    pub stack_action: Option<StackAction>,
 }
+
+#[derive(Debug, Clone, Subcommand)]
+#[allow(non_camel_case_types)]
+pub enum StackAction {
+    /// clear stack
+    clear(ClearArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct ClearArgs {}
 
 #[derive(Debug, Clone, Args)]
 pub struct BookmarkArgs {

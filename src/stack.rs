@@ -1,119 +1,130 @@
-
 use std::fs;
 use std::fs::File;
-use std::path::{PathBuf};
+use std::io::{Error, ErrorKind, Result};
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::io::{Result, Error, ErrorKind};
-use sysinfo::{System, Pid};
-
+use sysinfo::{Pid, System};
 
 #[derive(Debug, Clone)]
-pub struct Stack
-{
+pub struct Stack {
     pid: u32,
     path: PathBuf,
     stack: Vec<PathBuf>,
 }
 
-impl Stack
-{
-
+impl Stack {
     pub fn new(process_id: u32) -> Result<Self> {
-        let mut stack: Stack = Stack{
-            pid : process_id,
-            path : PathBuf::new(),
-            stack : Vec::<PathBuf>::new(),
+        let mut stack: Stack = Stack {
+            pid: process_id,
+            path: PathBuf::new(),
+            stack: Vec::<PathBuf>::new(),
         };
 
-        _ = stack.build_stack()?;
+        // remove first entry if it is empty, because after
+        // creation of the stack there seems to be an empty
+        // cell in the vector
+        stack.build_stack()?;
+        if !stack.stack[0].is_dir() {
+            stack.stack.remove(0);
+        }
 
-        return Ok(stack);
+        Ok(stack)
     }
 
-    /**
-     * return stack
-     */
+    // return stack
     pub fn get_stack(&mut self) -> Result<&Vec<PathBuf>> {
-        return Ok(&self.stack);
+        Ok(&self.stack)
     }
 
-    /**
-     * push entry to stack
-     * returns updated stack
-     */
-    pub fn push_entry(&mut self, path: &PathBuf) -> Result<&Vec<PathBuf>> {
+    /// clear stack by deleting the associated stack file
+    pub fn clear_stack(&mut self) -> Result<()> {
+        fs::remove_file(self.path.clone())
+    }
+
+    /// push entry to stack
+    /// returns updated stack
+    pub fn push_entry(&mut self, path: &Path) -> Result<&Vec<PathBuf>> {
         let abs_path = path.canonicalize()?;
         self.stack.push(abs_path);
         self.write_stack_file()?;
-        return Ok(&self.stack);
+        Ok(&self.stack)
     }
 
-    /**
-     * pop entry from stack
-     * return poppe entry
-     */
+    /// pop entry from stack
+    /// return popped entry
     pub fn pop_entry(&mut self) -> Result<PathBuf> {
         let entry = self.stack.pop();
         self.write_stack_file()?;
 
-        return match entry {
+        match entry {
             Some(entry) => Ok(entry),
-            None => Err(Error::new(ErrorKind::Other, "pop failed to retrieve item from stack")),
+            None => Err(Error::new(
+                ErrorKind::Other,
+                "pop failed to retrieve item from stack",
+            )),
         }
     }
 
-    /**
-     * get entry by number
-     * return nth last entry
-     */
-    pub fn get_entry_by_number(&mut self, entry_number: u32) -> Result<&PathBuf> {
-        if entry_number > (self.stack.len() as u32 - 1) {
-            return Err(Error::new(ErrorKind::Other, "requested entry number is out of bounds"));
-        }
+    /// get entry by number without removing it from the stack
+    /// return nth last entry
+    pub fn get_entry_by_number(&mut self, entry_number: usize) -> Result<&PathBuf> {
         // index from the end of the vector as new entries are appended at the end of the list
-        return Ok(&self.stack[self.stack.len() - (entry_number as usize)]);
+        match self.stack.get(
+            self.stack
+                .len()
+                .checked_sub(entry_number)
+                .expect("requested entry number is out of bounds"),
+        ) {
+            Some(item) => Ok(item),
+            None => Err(Error::new(
+                ErrorKind::Other,
+                "failed to retrieve stack entry by number",
+            )),
+        }
     }
 
-    /**
-     * clean up dead stack files, parse and build stack
-     */
-    fn build_stack(&mut self) -> Result< Vec<PathBuf> > {
-        let stack_dir: PathBuf = PathBuf::from_str("/tmp/navigation/").expect("failed to create path object of '/tmp/navigation'");
+    /// clean up dead stack files, parse and build stack
+    fn build_stack(&mut self) -> Result<()> {
+        let stack_dir: PathBuf = PathBuf::from_str("/tmp/navigation/")
+            .expect("failed to create path object of '/tmp/navigation'");
         let mut sys = System::new_all();
         sys.refresh_all();
         let procs = sys.processes();
-    
+
         if stack_dir.is_dir() {
             // clean up stack files of expired processes
             let members = fs::read_dir(stack_dir.clone())?;
             for entry in members {
                 let entry = entry?;
-                let process_id = Pid::from_str(entry.file_name().to_str().expect("failed to convert file name to str"));
+                let process_id = Pid::from_str(
+                    entry
+                        .file_name()
+                        .to_str()
+                        .expect("failed to convert file name to str"),
+                );
                 if !procs.contains_key(&process_id.expect("failed to convert filename to pid")) {
                     fs::remove_file(entry.path()).expect("failed to remove orphaned file");
                 }
             }
         } else {
             // create temporary directory to store the stack
-            let _ = fs::create_dir(stack_dir.clone())?;
+            fs::create_dir(stack_dir.clone())?;
         }
-    
+
         self.path = stack_dir.clone();
         self.path.push(PathBuf::from(&self.pid.to_string()));
         if self.path.is_file() {
             // read and parse stack file
-            _ = self.read_stack_file(&self.path.clone())?;
+            self.read_stack_file(&self.path.clone())?;
         } else {
             // create stack file and store current path
-            _ = File::create(self.path.clone())?;
+            File::create(self.path.clone())?;
         }
-    
-        return Ok(vec![stack_dir]);
+
+        Ok(())
     }
 
-    /**
-     * parse stack file
-     */
+    /// parse stack file
     fn read_stack_file(&mut self, stack_file_path: &PathBuf) -> Result<()> {
         let stack = fs::read_to_string(stack_file_path)?;
         let stack = stack.split("\n");
@@ -121,21 +132,21 @@ impl Stack
             self.stack.push(PathBuf::from(entry));
         }
 
-        return Ok(());
+        Ok(())
     }
 
-    /**
-     * write stack current stack to file to save it for next execution
-     */
+    /// write stack current stack to file to save it for next execution
     fn write_stack_file(&mut self) -> Result<()> {
         let mut output = Vec::<&str>::new();
         for entry in &self.stack {
-            output.push(entry.to_str().expect("failed to convert stack entry to string"));
+            output.push(
+                entry
+                    .to_str()
+                    .expect("failed to convert stack entry to string"),
+            );
         }
         fs::write(self.path.clone(), output.join("\n"))?;
 
-        return Ok(())
+        Ok(())
     }
-
 } // end `impl database`
-
