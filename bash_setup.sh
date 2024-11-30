@@ -4,15 +4,22 @@ export PATH="$PATH:$PWD/target/debug/"
 pid=( $(ps -o ppid) )
 arg_pid=" --pid ${pid[-2]} "
 
+__call_navigate() {
+    eval "$(navigate ${arg_pid} $@)"
+}
 
 push() {
-    \builtin cd -- "$(navigate ${arg_pid} push $@)"
+    __call_navigate "push $@"
 }
 
 pop() {
-    \builtin cd -- "$(navigate ${arg_pid} pop $@)"
+    __call_navigate "pop $@"
 }
 
 stack() {
-	echo "$(navigate ${arg_pid} stack $@)"
+    __call_navigate "stack $@"
+}
+
+book() {
+    __call_navigate "bookmark $@"
 }

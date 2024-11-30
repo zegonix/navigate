@@ -38,7 +38,7 @@ pub struct PushArgs {
     pub show_stack: Option<bool>,
 
     /// change to <path>
-    pub path: PathBuf,
+    pub path: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -70,17 +70,41 @@ pub struct StackArgs {
 #[allow(non_camel_case_types)]
 pub enum StackAction {
     /// clear stack
-    clear(ClearArgs),
+    clear(EmptyArgs),
 }
-
-#[derive(Debug, Clone, Args)]
-pub struct ClearArgs {}
 
 #[derive(Debug, Clone, Args)]
 pub struct BookmarkArgs {
-    /// show stack
-    #[arg(short, long)]
-    pub show_stack: Option<bool>,
+    /// bookmark subcommand
+    #[command(subcommand)]
+    pub bookmark_action: Option<BookmarkAction>,
 
-    pub mark: String,
+    /// name of bookmark to push
+    pub name: Option<String>,
 }
+
+#[derive(Debug, Clone, Subcommand)]
+#[allow(non_camel_case_types)]
+pub enum BookmarkAction {
+    /// list all bookmarks
+    list(EmptyArgs),
+
+    /// add a bookmark with `book add <name> <path>`
+    add(BookmarkSubArgs),
+
+    /// remove a bookmark by name `book remove <name>`
+    remove(BookmarkSubArgs)
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct BookmarkSubArgs {
+    /// name of bookmark to add/remove
+    pub name: String,
+
+    /// path of bookmark to add
+    pub path: Option<String>,
+}
+
+/// empty struct for subcommands with no arguments
+#[derive(Debug, Clone, Args)]
+pub struct EmptyArgs {}

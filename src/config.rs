@@ -3,48 +3,64 @@
 
 use std::fs;
 use std::fs::File;
-use std::io::{Error, ErrorKind, Result};
-use std::path::{Path, PathBuf};
+use std::io::{Error, Result};
+use std::path::{PathBuf};
 use std::str::FromStr;
-use sysinfo::{Pid, System};
-
-const config_dir_path: &str = "~/.config/navigate/";
+use std::collections::HashMap;
+use std::env::var;
 
 #[derive(Debug, Clone)]
 pub struct Config {
-    pub bookmarks: Vec<PathBuf>,
+    pub conf_dir: PathBuf,
+    pub bookmarks: HashMap<String, PathBuf>,
 }
 
 impl Config {
     /// generates and populates a new instance of Config
     pub fn new() -> Result<Self> {
-        let mut config = Config {
-            bookmarks: Vec::<PathBuf>::new(),
+        let mut bookmarks = Config {
+            conf_dir: PathBuf::new(),
+            bookmarks: HashMap::<String, PathBuf>::new(),
         };
-
-        // stack.build_stack()?;
-        if !config.bookmarks[0].is_dir() {
-            config.bookmarks.remove(0);
+        let home_dir = match var("HOME") {
+            Ok(value) => value,
+            Err(error) => return Err(Error::other(error.to_string())),
         };
+        bookmarks.conf_dir = match PathBuf::from_str(&home_dir) {
+            Ok(value) => value,
+            Err(error) => return Err(Error::other(error.to_string())),
+        };
+        bookmarks.conf_dir.push(".config/navigate/");
+        bookmarks.build_config()?;
 
-        Ok(config)
+        Ok(bookmarks)
     }
 
-    pub fn build_config(&mut self) -> Result<()> {
-        let config_dir = match PathBuf::from_str(config_dir_path) {
-            Ok(result) => result,
-            Err(_) => return Err(Error::other("failed to create path object for config file")),
-        };
-
-        let mut bookmark_file = config_dir.clone();
+    fn build_config(&mut self) -> Result<()> {
+        let mut bookmark_file = self.conf_dir.clone();
         bookmark_file.push("bookmarks.conf");
 
         if !bookmark_file.is_file() {
             _ = File::create(bookmark_file.clone())?;
         }
         
-        let mut bookmarks = fs::read_to_string(bookmark_file.clone())?;
-        // TODO: parse bookmarks
+        let bookmarks = fs::read_to_string(bookmark_file)?;
+        let bookmarks = bookmarks.split("\n");
+        for entry in bookmarks {
+            let tokens: Vec<&str> = entry.split("=").collect();
+            if tokens.len() != 2 {
+                continue;
+            }
+            let key: String = String::from(tokens[0]);
+            let path = match PathBuf::from_str(tokens[1]) {
+                Ok(value) => value,
+                Err(err) => return Err(Error::other(err.to_string())),
+            };
+            if !path.is_dir() {
+                continue;
+            }
+            self.bookmarks.insert(key, path);
+        }
 
         Ok(())
     }

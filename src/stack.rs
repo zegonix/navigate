@@ -1,6 +1,6 @@
 use std::fs;
 use std::fs::File;
-use std::io::{Error, ErrorKind, Result};
+use std::io::{Error, Result};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use sysinfo::{Pid, System};
@@ -58,9 +58,8 @@ impl Stack {
 
         match entry {
             Some(entry) => Ok(entry),
-            None => Err(Error::new(
-                ErrorKind::Other,
-                "pop failed to retrieve item from stack",
+            None => Err(Error::other(
+                "-- pop failed to retrieve item from stack, it might be empty",
             )),
         }
     }
@@ -73,12 +72,11 @@ impl Stack {
             self.stack
                 .len()
                 .checked_sub(entry_number)
-                .expect("requested entry number is out of bounds"),
+                .expect("-- requested entry number is out of bounds"),
         ) {
             Some(item) => Ok(item),
-            None => Err(Error::new(
-                ErrorKind::Other,
-                "failed to retrieve stack entry by number",
+            None => Err(Error::other(
+                "-- failed to retrieve stack entry by number",
             )),
         }
     }
@@ -86,7 +84,7 @@ impl Stack {
     /// clean up dead stack files, parse and build stack
     fn build_stack(&mut self) -> Result<()> {
         let stack_dir: PathBuf = PathBuf::from_str("/tmp/navigation/")
-            .expect("failed to create path object of '/tmp/navigation'");
+            .expect("-- failed to create path object of '/tmp/navigation'");
         let mut sys = System::new_all();
         sys.refresh_all();
         let procs = sys.processes();
@@ -100,10 +98,10 @@ impl Stack {
                     entry
                         .file_name()
                         .to_str()
-                        .expect("failed to convert file name to str"),
+                        .expect("-- failed to convert file name to str"),
                 );
-                if !procs.contains_key(&process_id.expect("failed to convert filename to pid")) {
-                    fs::remove_file(entry.path()).expect("failed to remove orphaned file");
+                if !procs.contains_key(&process_id.expect("-- failed to convert filename to pid")) {
+                    fs::remove_file(entry.path()).expect("-- failed to remove orphaned file");
                 }
             }
         } else {
@@ -142,7 +140,7 @@ impl Stack {
             output.push(
                 entry
                     .to_str()
-                    .expect("failed to convert stack entry to string"),
+                    .expect("-- failed to convert stack entry to string"),
             );
         }
         fs::write(self.path.clone(), output.join("\n"))?;
