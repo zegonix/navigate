@@ -1,21 +1,23 @@
 //! handle the config file and bookmarks stored
 //! in said config file
 
+use std::collections::HashMap;
+use std::env::var;
 use std::fs;
 use std::fs::File;
 use std::io::{Error, Result};
-use std::path::{PathBuf};
+use std::path::PathBuf;
 use std::str::FromStr;
-use std::collections::HashMap;
-use std::env::var;
 
 #[derive(Debug, Clone)]
 pub struct Config {
-    pub conf_dir: PathBuf,
-    pub bookmarks: HashMap<String, PathBuf>,
+    conf_dir: PathBuf,
+    bookmarks: HashMap<String, PathBuf>,
 }
 
 impl Config {
+    const BOOKMARK_FILE_NAME : &str = "bookmarks.conf";
+
     /// generates and populates a new instance of Config
     pub fn new() -> Result<Self> {
         let mut bookmarks = Config {
@@ -36,14 +38,38 @@ impl Config {
         Ok(bookmarks)
     }
 
+    pub fn get_bookmarks(&mut self) -> &mut HashMap<String, PathBuf> {
+        &mut self.bookmarks
+    }
+
+    pub fn add_bookmark(&mut self, name: &String, path: &PathBuf) -> Result<()> {
+        if !path.is_dir() {
+            return Err(Error::other("-- provided path argument does not point to a valid directory"))
+        } else {
+            self.bookmarks.insert(name.to_string(), path.to_path_buf());
+            self.write_bookmark_file()?;
+        }
+        Ok(())
+    }
+
+    pub fn remove_bookmark(&mut self, name: &String) -> Result<()> {
+        if self.bookmarks.contains_key(name) {
+            _ = self.bookmarks.remove(name);
+            self.write_bookmark_file()?;
+        } else {
+            return Err(Error::other("-- bookmark requested to delete does not exist"));
+        }
+        Ok(())
+    }
+
     fn build_config(&mut self) -> Result<()> {
         let mut bookmark_file = self.conf_dir.clone();
-        bookmark_file.push("bookmarks.conf");
+        bookmark_file.push(Self::BOOKMARK_FILE_NAME);
 
         if !bookmark_file.is_file() {
             _ = File::create(bookmark_file.clone())?;
         }
-        
+
         let bookmarks = fs::read_to_string(bookmark_file)?;
         let bookmarks = bookmarks.split("\n");
         for entry in bookmarks {
@@ -62,6 +88,19 @@ impl Config {
             self.bookmarks.insert(key, path);
         }
 
+        Ok(())
+    }
+
+    fn write_bookmark_file(&self) -> Result<()> {
+        let mut file_content = String::new();
+        for (mark, path) in self.bookmarks.iter() {
+            file_content.push_str(&format!("{}={}\n", mark, path.to_str().unwrap()));
+        }
+
+        let mut path = self.conf_dir.clone();
+        path.push(Self::BOOKMARK_FILE_NAME);
+
+        fs::write(path, file_content)?;
         Ok(())
     }
 }

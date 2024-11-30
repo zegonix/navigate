@@ -96,13 +96,13 @@ fn handle_bookmark(args: &BookmarkArgs, stack: &mut Stack) -> Result<()> {
     // if args.bookmark_action.is_some() {
     if args.bookmark_action.is_some() {
         match args.bookmark_action.clone().unwrap() {
-            BookmarkAction::list(_) => list_bookmarks(&config)?,
+            BookmarkAction::list(_) => list_bookmarks(&mut config)?,
             BookmarkAction::add(args) => add_bookmarks(&args, &mut config)?,
             BookmarkAction::remove(args) => remove_bookmarks(&args, &mut config)?,
         };
     } else if args.name.is_some() {
         let path = match config
-            .bookmarks
+            .get_bookmarks()
             .get(args.name.as_ref().unwrap())
         {
             Some(value) => value,
@@ -115,20 +115,26 @@ fn handle_bookmark(args: &BookmarkArgs, stack: &mut Stack) -> Result<()> {
     Ok(())
 }
 
-fn list_bookmarks(config: &Config) -> Result<()> {
+fn list_bookmarks(config: &mut Config) -> Result<()> {
     let mut buffer = String::new();
-    for (mark, path) in &config.bookmarks {
+    for (mark, path) in config.get_bookmarks() {
         buffer.push_str(&format!("{} : {}\n", mark, path.to_str().unwrap()));
     }
     println!("echo '{}'", buffer);
     Ok(())
 }
 
-fn add_bookmarks(_args: &BookmarkSubArgs, _bookmarks: &mut Config) -> Result<()> {
+fn add_bookmarks(args: &BookmarkSubArgs, config: &mut Config) -> Result<()> {
+    if args.path.is_none() {
+        return Err(Error::other("-- missing path argument"));
+    } else {
+        config.add_bookmark(&args.name, &args.path.clone().unwrap())?;
+    }
     Ok(())
 }
 
-fn remove_bookmarks(_args: &BookmarkSubArgs, _bookmarks: &mut Config) -> Result<()> {
+fn remove_bookmarks(args: &BookmarkSubArgs, config: &mut Config) -> Result<()> {
+    config.remove_bookmark(&args.name)?;
     Ok(())
 }
 

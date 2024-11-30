@@ -102,7 +102,7 @@ pub struct BookmarkSubArgs {
     pub name: String,
 
     /// path of bookmark to add
-    pub path: Option<String>,
+    pub path: Option<PathBuf>,
 }
 
 /// empty struct for subcommands with no arguments
