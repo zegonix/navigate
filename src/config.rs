@@ -12,16 +12,21 @@ use std::str::FromStr;
 #[derive(Debug, Clone)]
 pub struct Config {
     conf_dir: PathBuf,
+    settings: Settings,
     bookmarks: HashMap<String, PathBuf>,
 }
 
+#[derive(Debug, Clone)]
+pub struct Settings {}
+
 impl Config {
-    const BOOKMARK_FILE_NAME : &str = "bookmarks.conf";
+    const BOOKMARK_FILE_NAME: &str = "bookmarks.conf";
 
     /// generates and populates a new instance of Config
     pub fn new() -> Result<Self> {
         let mut bookmarks = Config {
             conf_dir: PathBuf::new(),
+            settings: Settings{},
             bookmarks: HashMap::<String, PathBuf>::new(),
         };
         let home_dir = match var("HOME") {
@@ -44,7 +49,9 @@ impl Config {
 
     pub fn add_bookmark(&mut self, name: &String, path: &PathBuf) -> Result<()> {
         if !path.is_dir() {
-            return Err(Error::other("-- provided path argument does not point to a valid directory"))
+            return Err(Error::other(
+                "-- provided path argument does not point to a valid directory",
+            ));
         } else {
             self.bookmarks.insert(name.to_string(), path.to_path_buf());
             self.write_bookmark_file()?;
@@ -57,7 +64,9 @@ impl Config {
             _ = self.bookmarks.remove(name);
             self.write_bookmark_file()?;
         } else {
-            return Err(Error::other("-- bookmark requested to delete does not exist"));
+            return Err(Error::other(
+                "-- bookmark requested to delete does not exist",
+            ));
         }
         Ok(())
     }

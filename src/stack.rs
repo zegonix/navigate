@@ -4,6 +4,7 @@ use std::io::{Error, Result};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use sysinfo::{Pid, System};
+use super::config::Settings;
 
 #[derive(Debug, Clone)]
 pub struct Stack {
@@ -19,21 +20,22 @@ impl Stack {
             path: PathBuf::new(),
             stack: Vec::<PathBuf>::new(),
         };
-
-        // remove first entry if it is empty, because after
-        // creation of the stack there seems to be an empty
-        // cell in the vector
         stack.build_stack()?;
-        if !stack.stack[0].is_dir() {
-            stack.stack.remove(0);
-        }
 
         Ok(stack)
     }
 
     // return stack
-    pub fn get_stack(&mut self) -> Result<&Vec<PathBuf>> {
-        Ok(&self.stack)
+    pub fn to_string(&self, _settings: Option<Settings>) -> Result<String> {
+        if self.stack.is_empty() {
+            return Err(Error::other("-- the stack is empty"));
+        }
+        // print stack to string
+        let mut output : String = "".to_string();
+        for (n, item) in self.stack.iter().rev().enumerate() {
+            output.push_str(&format!("'{} - {}'\n", n, item.to_str().unwrap()));
+        }    
+        Ok(output)
     }
 
     /// clear stack by deleting the associated stack file
@@ -52,10 +54,9 @@ impl Stack {
 
     /// pop entry from stack
     /// return popped entry
-    pub fn pop_entry(&mut self) -> Result<PathBuf> {
+    pub fn pop_entry(&mut self, _num_entries: Option<usize>) -> Result<PathBuf> {
         let entry = self.stack.pop();
         self.write_stack_file()?;
-
         match entry {
             Some(entry) => Ok(entry),
             None => Err(Error::other(
@@ -68,23 +69,26 @@ impl Stack {
     /// return nth last entry
     pub fn get_entry_by_number(&mut self, entry_number: usize) -> Result<&PathBuf> {
         // index from the end of the vector as new entries are appended at the end of the list
-        match self.stack.get(
-            self.stack
-                .len()
-                .checked_sub(entry_number)
-                .expect("-- requested entry number is out of bounds"),
-        ) {
+        let index = match self.stack.len().checked_sub(entry_number) {
+            Some(value) => value,
+            None => return Err(Error::other("-- no entry found at request index")),
+        };
+        match self.stack.get(index) {
             Some(item) => Ok(item),
-            None => Err(Error::other(
-                "-- failed to retrieve stack entry by number",
-            )),
+            None => Err(Error::other("-- failed to retrieve stack entry by number")),
         }
     }
 
     /// clean up dead stack files, parse and build stack
     fn build_stack(&mut self) -> Result<()> {
-        let stack_dir: PathBuf = PathBuf::from_str("/tmp/navigation/")
-            .expect("-- failed to create path object of '/tmp/navigation'");
+        let stack_dir: PathBuf = match PathBuf::from_str("/tmp/navigation/") {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(Error::other(
+                    "-- failed to create path object of the stack directory",
+                ))
+            }
+        };
         let mut sys = System::new_all();
         sys.refresh_all();
         let procs = sys.processes();
@@ -94,14 +98,18 @@ impl Stack {
             let members = fs::read_dir(stack_dir.clone())?;
             for entry in members {
                 let entry = entry?;
-                let process_id = Pid::from_str(
-                    entry
-                        .file_name()
-                        .to_str()
-                        .expect("-- failed to convert file name to str"),
-                );
-                if !procs.contains_key(&process_id.expect("-- failed to convert filename to pid")) {
-                    fs::remove_file(entry.path()).expect("-- failed to remove orphaned file");
+                let process_id = match Pid::from_str(match entry.file_name().to_str() {
+                    Some(value) => value,
+                    None => return Err(Error::other("-- failed to convert file name to str")),
+                }) {
+                    Ok(value) => value,
+                    Err(error) => return Err(Error::other(error.to_string())),
+                };
+                if !procs.contains_key(&process_id) {
+                    match fs::remove_file(entry.path()) {
+                        Ok(value) => value,
+                        Err(error) => return Err(Error::other(error.to_string())),
+                    }
                 }
             }
         } else {
@@ -118,6 +126,7 @@ impl Stack {
             // create stack file and store current path
             File::create(self.path.clone())?;
         }
+        self.cleanup_stack();
 
         Ok(())
     }
@@ -133,15 +142,21 @@ impl Stack {
         Ok(())
     }
 
+    /// remove invalid paths from stack
+    fn cleanup_stack(&mut self) {
+        if !self.stack.is_empty() {
+            self.stack.retain(|entry| entry.is_dir());
+        }
+    }
+
     /// write stack current stack to file to save it for next execution
     fn write_stack_file(&mut self) -> Result<()> {
         let mut output = Vec::<&str>::new();
         for entry in &self.stack {
-            output.push(
-                entry
-                    .to_str()
-                    .expect("-- failed to convert stack entry to string"),
-            );
+            output.push(match entry.to_str() {
+                Some(value) => value,
+                None => return Err(Error::other("-- failed to convert stack entry to string")),
+            });
         }
         fs::write(self.path.clone(), output.join("\n"))?;
 

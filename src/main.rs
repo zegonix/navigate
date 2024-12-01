@@ -57,9 +57,8 @@ fn handle_push(args: &PushArgs, stack: &mut Stack) -> Result<()> {
     Ok(())
 }
 
-fn handle_pop(_args: &PopArgs, stack: &mut Stack) -> Result<()> {
-    // TODO: handle arguments
-    let path = stack.pop_entry()?;
+fn handle_pop(args: &PopArgs, stack: &mut Stack) -> Result<()> {
+    let path = stack.pop_entry(args.num_entries)?;
     println!(
         "cd -- {}",
         match path.to_str() {
@@ -77,14 +76,8 @@ fn handle_stack(args: &StackArgs, stack: &mut Stack) -> Result<()> {
         }
     }
     // retrieve stack
-    let output = stack.get_stack()?;
-    if output.is_empty() {
-        return Err(Error::other("-- the stack is empty"));
-    }
-    // print stack to standard output
-    for (n, item) in output.iter().rev().enumerate() {
-        println!("echo '{} - {}'", n, item.to_str().unwrap());
-    }
+    let output: String = stack.to_string(None)?;
+    print!("echo '{}'", output);
     Ok(())
 }
 
