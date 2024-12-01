@@ -1,6 +1,7 @@
 mod arguments;
 mod config;
 mod stack;
+mod format;
 
 use arguments::*;
 use clap::Parser;
