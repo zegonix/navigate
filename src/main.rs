@@ -1,11 +1,12 @@
 mod arguments;
 mod config;
-mod stack;
 mod format;
+mod stack;
 
 use arguments::*;
 use clap::Parser;
 use config::Config;
+use format::Format;
 use stack::Stack;
 use std::env::{current_dir, var};
 use std::io::{Error, Result};
@@ -13,10 +14,14 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 fn main() -> Result<()> {
+    let format: Format = format::Format::new();
     let args = match Arguments::try_parse() {
         Ok(a) => a,
         Err(e) => {
-            print!("echo '{}'", e);
+            print!(
+                "echo '{}{}m{}{}{}m'",
+                format.prefix, format.color.foreground.red, e, format.prefix, format.reset_all
+            );
             return Ok(());
         }
     };
@@ -35,7 +40,14 @@ fn main() -> Result<()> {
     };
 
     if res.is_err() {
-        print!("echo '{}'", res.unwrap_err());
+        print!(
+            "echo '{}{}m{}{}{}m'",
+            format.prefix,
+            format.color.foreground.red,
+            res.unwrap_err(),
+            format.prefix,
+            format.reset_all
+        );
     }
     Ok(())
 }
@@ -95,16 +107,15 @@ fn handle_bookmark(args: &BookmarkArgs, stack: &mut Stack) -> Result<()> {
             BookmarkAction::remove(args) => remove_bookmarks(&args, &mut config)?,
         };
     } else if args.name.is_some() {
-        let path = match config
-            .get_bookmarks()
-            .get(args.name.as_ref().unwrap())
-        {
+        let path = match config.get_bookmarks().get(args.name.as_ref().unwrap()) {
             Some(value) => value,
             None => return Err(Error::other("requested bookmark does not exist")),
         };
         push_path(path, stack)?;
     } else {
-        return Err(Error::other("-- provide either a `subcommand` or a `bookmark name`"));
+        return Err(Error::other(
+            "-- provide either a `subcommand` or a `bookmark name`",
+        ));
     }
     Ok(())
 }
