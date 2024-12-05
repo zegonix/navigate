@@ -1,10 +1,8 @@
-use std::io::{Error, Result};
-
-pub const ESC: &'static str = "\x1B";
-pub const PREFIX: &'static str = "\x1B[";
-pub const RESET_ARG: &'static str = "0";
-pub const TERMINATION: &'static str = "m";
-pub const RESET_SEQ: &'static str = "\x1B[0m";
+pub const ESC: &str = "\x1B";
+pub const PREFIX: &str = "\x1B[";
+pub const RESET_ARG: &str = "0";
+pub const TERMINATION: &str = "m";
+pub const RESET_SEQ: &str = "\x1B[0m";
 pub const FG: ColorContext = ColorContext::Foreground;
 pub const BG: ColorContext = ColorContext::Background;
 

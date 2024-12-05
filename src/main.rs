@@ -1,11 +1,13 @@
 mod arguments;
 mod config;
+mod bookmarks;
 mod format;
 mod stack;
 
 use arguments::*;
 use clap::Parser;
 use config::*;
+use bookmarks::*;
 use format::*;
 use stack::Stack;
 use std::env::{current_dir, var};
