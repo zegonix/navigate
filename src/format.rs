@@ -1,162 +1,178 @@
 use std::io::{Error, Result};
 
+pub const ESC: &'static str = "\x1B";
+pub const PREFIX: &'static str = "\x1B[";
+pub const RESET_ARG: &'static str = "0";
+pub const TERMINATION: &'static str = "m";
+pub const RESET_SEQ: &'static str = "\x1B[0m";
+pub const FG: ColorContext = ColorContext::Foreground;
+pub const BG: ColorContext = ColorContext::Background;
 
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
-pub struct Format {
-    /// escape character to start a sequence
-    pub escape: String,
+pub const STYLES: Styles = Styles {
+    set: StyleCodes {
+        bold: "1",
+        dim: "2",
+        italic: "3",
+        underline: "4",
+        blink: "5",
+        reverse: "7",
+        invisible: "8",
+        strikethrough: "9",
+    },
+    reset: StyleCodes {
+        bold: "22",
+        dim: "22",
+        italic: "23",
+        underline: "24",
+        blink: "25",
+        reverse: "27",
+        invisible: "28",
+        strikethrough: "29",
+    },
+};
 
-    /// prefix = escape + '['
-    pub prefix: String,
-
-    /// reset both style and color
-    pub reset_all: String,
-
-    /// text style
-    pub style: Styles,
-
-    /// text color
-    pub color: Colors,
-}
+pub const COLORS: Colors = Colors {
+    fg: ColorCodes {
+        black: "30",
+        red: "31",
+        green: "32",
+        yellow: "33",
+        blue: "34",
+        magenta: "35",
+        cyan: "36",
+        white: "37",
+        extended: "38",
+        default: "39",
+    },
+    bg: ColorCodes {
+        black: "40",
+        red: "41",
+        green: "42",
+        yellow: "43",
+        blue: "44",
+        magenta: "45",
+        cyan: "46",
+        white: "47",
+        extended: "48",
+        default: "49",
+    },
+};
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Styles {
-    /// set style
     pub set: StyleCodes,
-
-    /// reset style
     pub reset: StyleCodes,
 }
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct StyleCodes {
-    pub bold: String,
-    pub dim: String,
-    pub italic: String,
-    pub underline: String,
-    pub blink: String,
-    pub reverse: String,
-    pub invisible: String,
-    pub strikethrough: String,
+    pub bold: &'static str,
+    pub dim: &'static str,
+    pub italic: &'static str,
+    pub underline: &'static str,
+    pub blink: &'static str,
+    pub reverse: &'static str,
+    pub invisible: &'static str,
+    pub strikethrough: &'static str,
 }
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Colors {
-    pub foreground: ColorCodes,
-    pub background: ColorCodes,
+    pub fg: ColorCodes,
+    pub bg: ColorCodes,
 }
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ColorCodes {
-    pub black: String,
-    pub red: String,
-    pub green: String,
-    pub yellow: String,
-    pub blue: String,
-    pub magenta: String,
-    pub cyan: String,
-    pub white: String,
-    pub default: String,
+    pub black: &'static str,
+    pub red: &'static str,
+    pub green: &'static str,
+    pub yellow: &'static str,
+    pub blue: &'static str,
+    pub magenta: &'static str,
+    pub cyan: &'static str,
+    pub white: &'static str,
+    pub extended: &'static str,
+    pub default: &'static str,
 }
 
 #[allow(dead_code)]
-impl Format {
-    pub const ESC: &str = "\x1B";
-    pub const PREFIX: &str = "\x1B[";
-    pub const TERMINATION: &str = "m";
-    pub const RESET_STYLE: &str = "\x1B[0m";
+#[derive(Debug, Clone)]
+pub enum ColorContext {
+    Foreground,
+    Background,
+}
 
-    pub fn new() -> Format {
-        Format {
-            escape: String::from(Self::ESC),
-            prefix: String::from(Self::PREFIX),
-            reset_all: String::from("0"),
-            style: Styles {
-                set: StyleCodes {
-                    bold: String::from("1"),
-                    dim: String::from("2"),
-                    italic: String::from("3"),
-                    underline: String::from("4"),
-                    blink: String::from("5"),
-                    reverse: String::from("7"),
-                    invisible: String::from("8"),
-                    strikethrough: String::from("9"),
-                },
-                reset: StyleCodes {
-                    bold: String::from("22"),
-                    dim: String::from("22"),
-                    italic: String::from("23"),
-                    underline: String::from("24"),
-                    blink: String::from("25"),
-                    reverse: String::from("27"),
-                    invisible: String::from("28"),
-                    strikethrough: String::from("29"),
-                },
-            },
-            color: Colors {
-                foreground: ColorCodes {
-                    black: String::from("30"),
-                    red: String::from("31"),
-                    green: String::from("32"),
-                    yellow: String::from("33"),
-                    blue: String::from("34"),
-                    magenta: String::from("35"),
-                    cyan: String::from("36"),
-                    white: String::from("37"),
-                    default: String::from("39"),
-                },
-                background: ColorCodes {
-                    black: String::from("40"),
-                    red: String::from("41"),
-                    green: String::from("42"),
-                    yellow: String::from("43"),
-                    blue: String::from("44"),
-                    magenta: String::from("45"),
-                    cyan: String::from("46"),
-                    white: String::from("47"),
-                    default: String::from("49"),
-                },
-            },
+/// generates a common style sequence of format
+/// `\x1B[<styles>;<foreground-color>;<background-color>m`
+/// all elements are optional, if none is supplied the function returns an error
+pub fn generate_style_sequence(
+    style: Option<Vec<&str>>,
+    foreground: Option<&str>,
+    background: Option<&str>,
+) -> String {
+    // assemble sequence as vector of string
+    // this way the semicolons to separate arguments
+    // can be inserted with 'join()'
+    let mut sequence = PREFIX.to_owned();
+    let mut arguments = Vec::<String>::new();
+    if let Some(item) = style {
+        for entry in item {
+            arguments.push(entry.to_owned());
         }
     }
-
-    pub fn generate_style_sequence(
-        &self,
-        style: Option<&Vec<String>>,
-        foreground: Option<&String>,
-        background: Option<&String>,
-    ) -> Result<String> {
-        if style.is_none() && foreground.is_none() && background.is_none() {
-            return Err(Error::other("-- generate_style_sequence called without arguments"));
-        }
-
-        // assemble sequence if called with arguments
-        let mut sequence = Vec::<String>::new();
-        if let Some(item) = style {
-            sequence.push_str(item);
-            sequence.push(';');
-        }
-        if let Some(item) = foreground {
-            sequence.push_str(item);
-            sequence.push(';');
-        }
-        if let Some(item) = background {
-            sequence.push_str(item);
-            sequence.push(';');
-        }
-        sequence.pop(); // remove final semicolon
-        sequence.push_str(Self::TERMINATION); // terminate sequence
-
-        sequence
+    if let Some(item) = foreground {
+        arguments.push(item.to_owned());
+    }
+    if let Some(item) = background {
+        arguments.push(item.to_owned());
     }
 
-    pub fn generate_rgb_sequence(&self, ) -> String {
-
-        String::from("hi")
+    // panic if no arguments provided since this is a programming mistake
+    // which should not 
+    if arguments.is_empty() {
+        panic!("no arguments provided to 'generate_style_sequence()'");
     }
+    sequence.push_str(&arguments.join(";"));
+    sequence.push_str(TERMINATION); // terminate sequence with the termination character
+    sequence
+}
+
+/// generates a 256 color sequence
+/// see `generate_rgb_sequence(..)` for details
+pub fn generate_256color_sequence(context: ColorContext, color: u8) -> String {
+    let mut sequence = PREFIX.to_owned();
+    // choose context
+    match context {
+        ColorContext::Foreground => sequence.push_str(COLORS.fg.extended),
+        ColorContext::Background => sequence.push_str(COLORS.bg.extended),
+    };
+    // make it a rgb sequence
+    sequence.push_str(";5;");
+    sequence.push_str(&format!("{color}m"));
+    sequence
+}
+
+/// generates a rgb color sequence
+/// **note**: not all terminal emulators support rgb colors
+/// 
+/// rgb sequences are built the same as 256 color sequences:
+/// `\x1B[<context>;2;<r>;<g>;<b>m`
+/// where *context* is either '38' or '48' for foreground and background respectively
+/// and *r,g,b* are the values of each color channel
+pub fn generate_rgb_sequence(context: ColorContext, red: u8, green: u8, blue: u8) -> String {
+    let mut sequence = PREFIX.to_owned();
+    // choose context
+    match context {
+        ColorContext::Foreground => sequence.push_str(COLORS.fg.extended),
+        ColorContext::Background => sequence.push_str(COLORS.bg.extended),
+    };
+    // make it a rgb sequence
+    sequence.push_str(";2;");
+    sequence.push_str(&format!("{red};{green};{blue}m"));
+    sequence
 }

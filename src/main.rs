@@ -5,8 +5,8 @@ mod stack;
 
 use arguments::*;
 use clap::Parser;
-use config::Config;
-use format::Format;
+use config::*;
+use format::*;
 use stack::Stack;
 use std::env::{current_dir, var};
 use std::io::{Error, Result};
@@ -14,45 +14,51 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 fn main() -> Result<()> {
-    let format: Format = format::Format::new();
+    let style_error =
+        generate_style_sequence(Some(vec![STYLES.set.bold]), Some(COLORS.fg.red), None);
     let args = match Arguments::try_parse() {
         Ok(a) => a,
         Err(e) => {
-            print!(
-                "echo '{}{}m{}{}{}m'",
-                format.prefix, format.color.foreground.red, e, format.prefix, format.reset_all
-            );
+            print!("echo '{}{}{}' && false", style_error, e, RESET_SEQ);
+            return Ok(());
+        }
+    };
+    let mut config = match Config::new() {
+        Ok(value) => value,
+        Err(error) => {
+            print!("echo '{}{}{}' && false", style_error, error, RESET_SEQ);
             return Ok(());
         }
     };
     let mut stack = match Stack::new(args.pid) {
         Ok(stack) => stack,
         Err(_) => {
-            print!("echo ");
-            return Err(Error::other("-- failed to build stack"));
+            print!(
+                "echo '{}-- failed to build stack{}' && false",
+                style_error, RESET_SEQ
+            );
+            return Err(Error::other(""));
         }
     };
     let res = match args.action {
-        Action::push(push_args) => handle_push(&push_args, &mut stack),
-        Action::pop(pop_args) => handle_pop(&pop_args, &mut stack),
-        Action::stack(stack_args) => handle_stack(&stack_args, &mut stack),
-        Action::bookmark(bookmark_args) => handle_bookmark(&bookmark_args, &mut stack),
+        Action::push(push_args) => handle_push(&push_args, &mut config, &mut stack),
+        Action::pop(pop_args) => handle_pop(&pop_args, &mut config, &mut stack),
+        Action::stack(stack_args) => handle_stack(&stack_args, &mut config, &mut stack),
+        Action::bookmark(bookmark_args) => handle_bookmark(&bookmark_args, &mut config, &mut stack),
     };
 
     if res.is_err() {
         print!(
-            "echo '{}{}m{}{}{}m'",
-            format.prefix,
-            format.color.foreground.red,
+            "echo '{}{}{}' && false",
+            style_error,
             res.unwrap_err(),
-            format.prefix,
-            format.reset_all
+            RESET_SEQ,
         );
     }
     Ok(())
 }
 
-fn handle_push(args: &PushArgs, stack: &mut Stack) -> Result<()> {
+fn handle_push(args: &PushArgs, _config: &mut Config, stack: &mut Stack) -> Result<()> {
     let path = match args.path.clone() {
         Some(value) => value,
         None => {
@@ -70,7 +76,7 @@ fn handle_push(args: &PushArgs, stack: &mut Stack) -> Result<()> {
     Ok(())
 }
 
-fn handle_pop(args: &PopArgs, stack: &mut Stack) -> Result<()> {
+fn handle_pop(args: &PopArgs, _config: &mut Config, stack: &mut Stack) -> Result<()> {
     let path = stack.pop_entry(args.num_entries)?;
     println!(
         "cd -- {}",
@@ -82,10 +88,10 @@ fn handle_pop(args: &PopArgs, stack: &mut Stack) -> Result<()> {
     Ok(())
 }
 
-fn handle_stack(args: &StackArgs, stack: &mut Stack) -> Result<()> {
+fn handle_stack(args: &StackArgs, config: &mut Config, stack: &mut Stack) -> Result<()> {
     if args.stack_action.is_some() {
         match args.stack_action.clone().unwrap() {
-            StackAction::clear(_) => return stack.clear_stack(),
+            StackAction::clear(_) => return stack.clear_stack(config),
         }
     }
     // retrieve stack
@@ -94,11 +100,7 @@ fn handle_stack(args: &StackArgs, stack: &mut Stack) -> Result<()> {
     Ok(())
 }
 
-fn handle_bookmark(args: &BookmarkArgs, stack: &mut Stack) -> Result<()> {
-    let mut config = match Config::new() {
-        Ok(value) => value,
-        Err(error) => return Err(Error::other(error.to_string())),
-    };
+fn handle_bookmark(args: &BookmarkArgs, config: &mut Config, stack: &mut Stack) -> Result<()> {
     // if args.bookmark_action.is_some() {
     if args.bookmark_action.is_some() {
         match args.bookmark_action.clone().unwrap() {
@@ -109,7 +111,7 @@ fn handle_bookmark(args: &BookmarkArgs, stack: &mut Stack) -> Result<()> {
     } else if args.name.is_some() {
         let path = match config.get_bookmarks().get(args.name.as_ref().unwrap()) {
             Some(value) => value,
-            None => return Err(Error::other("requested bookmark does not exist")),
+            None => return Err(Error::other("-- requested bookmark does not exist")),
         };
         push_path(path, stack)?;
     } else {

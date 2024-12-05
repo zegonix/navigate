@@ -4,7 +4,7 @@ use std::io::{Error, Result};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use sysinfo::{Pid, System};
-use super::config::Settings;
+use super::config::*;
 
 #[derive(Debug, Clone)]
 pub struct Stack {
@@ -39,8 +39,10 @@ impl Stack {
     }
 
     /// clear stack by deleting the associated stack file
-    pub fn clear_stack(&mut self) -> Result<()> {
-        fs::remove_file(self.path.clone())
+    pub fn clear_stack(&mut self, config: &mut Config) -> Result<()> {
+        fs::remove_file(self.path.clone())?;
+        print!("echo '{}stack cleared successfully.{}'", config.settings.styles.note, config.settings.styles.reset);
+        Ok(())
     }
 
     /// push entry to stack
