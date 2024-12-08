@@ -60,14 +60,15 @@ impl Stack {
     /// pop entry from stack
     /// return popped entry
     pub fn pop_entry(&mut self, num_entries: Option<usize>) -> Result<PathBuf> {
-        let mut num = 1;
-        let mut entry: Option<PathBuf>;
-        if let Some(value) = num_entries {
-            num = value;
+        let mut num = num_entries.unwrap_or(1);
+        if num < 1 {
+            num = 1;
+        } else if num > self.stack.len() {
+            num = self.stack.len();
         }
-        for _ in 0..num {
-            entry = self.stack.pop();
-        }
+        let mut dropped_entries = self.stack.drain((self.stack.len()-num)..);
+        let entry = dropped_entries.nth(0);
+        drop(dropped_entries);
         self.write_stack_file()?;
         match entry {
             Some(entry) => Ok(entry),

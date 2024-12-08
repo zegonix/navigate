@@ -25,7 +25,7 @@ fn main() -> Result<()> {
             return Ok(());
         }
     };
-    let mut config = match Config::new() {
+    let config = match Config::new() {
         Ok(value) => value,
         Err(error) => {
             print!("echo '{}{}{}' && false", style_error, error, RESET_SEQ);

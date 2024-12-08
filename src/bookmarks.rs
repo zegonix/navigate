@@ -17,7 +17,6 @@ pub struct Bookmarks {
     bookmarks: HashMap<String, PathBuf>,
 }
 
-
 impl Bookmarks {
     const BOOKMARK_FILE_NAME: &str = "bookmarks.conf";
 
@@ -46,9 +45,16 @@ impl Bookmarks {
 
     /// reads and parses the bookmarks file
     fn build_bookmarks(&mut self) -> Result<()> {
+        // check if configuration directory exists, if not create it
+        if !self.conf_dir.is_dir() {
+            fs::create_dir(self.conf_dir.clone())?;
+        }
+
         let mut bookmark_file = self.conf_dir.clone();
+
         bookmark_file.push(Self::BOOKMARK_FILE_NAME);
 
+        // check if bookmarks file exists, if not create it
         if !bookmark_file.is_file() {
             _ = File::create(bookmark_file.clone())?;
         }
