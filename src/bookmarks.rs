@@ -18,12 +18,12 @@ pub struct Bookmarks {
 }
 
 
-impl Config {
+impl Bookmarks {
     const BOOKMARK_FILE_NAME: &str = "bookmarks.conf";
 
     /// generates and populates a new instance of Config
     pub fn new() -> Result<Self> {
-        let mut bookmarks = Config {
+        let mut bookmarks = Bookmarks {
             conf_dir: PathBuf::new(),
             bookmarks: HashMap::<String, PathBuf>::new(),
         };

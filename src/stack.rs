@@ -1,10 +1,10 @@
+use super::config::*;
 use std::fs;
 use std::fs::File;
 use std::io::{Error, Result};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use sysinfo::{Pid, System};
-use super::config::*;
 
 #[derive(Debug, Clone)]
 pub struct Stack {
@@ -31,17 +31,20 @@ impl Stack {
             return Err(Error::other("-- the stack is empty"));
         }
         // print stack to string
-        let mut output : String = "".to_string();
+        let mut output: String = "".to_string();
         for (n, item) in self.stack.iter().rev().enumerate() {
             output.push_str(&format!("'{} - {}'\n", n, item.to_str().unwrap()));
-        }    
+        }
         Ok(output)
     }
 
     /// clear stack by deleting the associated stack file
-    pub fn clear_stack(&mut self, config: &mut Config) -> Result<()> {
+    pub fn clear_stack(&mut self, config: &Config) -> Result<()> {
         fs::remove_file(self.path.clone())?;
-        print!("echo '{}stack cleared successfully.{}'", config.settings.styles.note, config.settings.styles.reset);
+        print!(
+            "echo '{}stack cleared successfully.{}'",
+            config.settings.styles.note, config.settings.styles.reset
+        );
         Ok(())
     }
 
@@ -56,8 +59,15 @@ impl Stack {
 
     /// pop entry from stack
     /// return popped entry
-    pub fn pop_entry(&mut self, _num_entries: Option<usize>) -> Result<PathBuf> {
-        let entry = self.stack.pop();
+    pub fn pop_entry(&mut self, num_entries: Option<usize>) -> Result<PathBuf> {
+        let mut num = 1;
+        let mut entry: Option<PathBuf>;
+        if let Some(value) = num_entries {
+            num = value;
+        }
+        for _ in 0..num {
+            entry = self.stack.pop();
+        }
         self.write_stack_file()?;
         match entry {
             Some(entry) => Ok(entry),

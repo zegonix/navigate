@@ -1,7 +1,7 @@
 mod arguments;
+mod format;
 mod config;
 mod bookmarks;
-mod format;
 mod stack;
 
 use arguments::*;
@@ -32,6 +32,13 @@ fn main() -> Result<()> {
             return Ok(());
         }
     };
+    let mut bookmarks = match Bookmarks::new() {
+        Ok(value) => value,
+        Err(error) => {
+            print!("echo '{}{}{}' && false", style_error, error, RESET_SEQ);
+            return Ok(());
+        }
+    };
     let mut stack = match Stack::new(args.pid) {
         Ok(stack) => stack,
         Err(_) => {
@@ -43,10 +50,10 @@ fn main() -> Result<()> {
         }
     };
     let res = match args.action {
-        Action::push(push_args) => handle_push(&push_args, &mut config, &mut stack),
-        Action::pop(pop_args) => handle_pop(&pop_args, &mut config, &mut stack),
-        Action::stack(stack_args) => handle_stack(&stack_args, &mut config, &mut stack),
-        Action::bookmark(bookmark_args) => handle_bookmark(&bookmark_args, &mut config, &mut stack),
+        Action::push(push_args) => handle_push(&push_args, &config, &mut stack),
+        Action::pop(pop_args) => handle_pop(&pop_args, &config, &mut stack),
+        Action::stack(stack_args) => handle_stack(&stack_args, &config, &mut stack),
+        Action::bookmark(bookmark_args) => handle_bookmark(&bookmark_args, &config, &mut bookmarks, &mut stack),
     };
 
     if res.is_err() {
@@ -60,7 +67,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn handle_push(args: &PushArgs, _config: &mut Config, stack: &mut Stack) -> Result<()> {
+fn handle_push(args: &PushArgs, _config: &Config, stack: &mut Stack) -> Result<()> {
     let path = match args.path.clone() {
         Some(value) => value,
         None => {
@@ -78,7 +85,7 @@ fn handle_push(args: &PushArgs, _config: &mut Config, stack: &mut Stack) -> Resu
     Ok(())
 }
 
-fn handle_pop(args: &PopArgs, _config: &mut Config, stack: &mut Stack) -> Result<()> {
+fn handle_pop(args: &PopArgs, _config: &Config, stack: &mut Stack) -> Result<()> {
     let path = stack.pop_entry(args.num_entries)?;
     println!(
         "cd -- {}",
@@ -90,7 +97,7 @@ fn handle_pop(args: &PopArgs, _config: &mut Config, stack: &mut Stack) -> Result
     Ok(())
 }
 
-fn handle_stack(args: &StackArgs, config: &mut Config, stack: &mut Stack) -> Result<()> {
+fn handle_stack(args: &StackArgs, config: &Config, stack: &mut Stack) -> Result<()> {
     if args.stack_action.is_some() {
         match args.stack_action.clone().unwrap() {
             StackAction::clear(_) => return stack.clear_stack(config),
@@ -102,16 +109,16 @@ fn handle_stack(args: &StackArgs, config: &mut Config, stack: &mut Stack) -> Res
     Ok(())
 }
 
-fn handle_bookmark(args: &BookmarkArgs, config: &mut Config, stack: &mut Stack) -> Result<()> {
+fn handle_bookmark(args: &BookmarkArgs, config: &Config, bookmarks: &mut Bookmarks, stack: &mut Stack) -> Result<()> {
     // if args.bookmark_action.is_some() {
     if args.bookmark_action.is_some() {
         match args.bookmark_action.clone().unwrap() {
-            BookmarkAction::list(_) => list_bookmarks(&mut config)?,
-            BookmarkAction::add(args) => add_bookmarks(&args, &mut config)?,
-            BookmarkAction::remove(args) => remove_bookmarks(&args, &mut config)?,
+            BookmarkAction::list(_) => list_bookmarks(config, bookmarks)?,
+            BookmarkAction::add(args) => add_bookmarks(&args, config, bookmarks)?,
+            BookmarkAction::remove(args) => remove_bookmarks(&args, config, bookmarks)?,
         };
     } else if args.name.is_some() {
-        let path = match config.get_bookmarks().get(args.name.as_ref().unwrap()) {
+        let path = match bookmarks.get_bookmarks().get(args.name.as_ref().unwrap()) {
             Some(value) => value,
             None => return Err(Error::other("-- requested bookmark does not exist")),
         };
@@ -124,26 +131,26 @@ fn handle_bookmark(args: &BookmarkArgs, config: &mut Config, stack: &mut Stack) 
     Ok(())
 }
 
-fn list_bookmarks(config: &mut Config) -> Result<()> {
+fn list_bookmarks(config: &Config, bookmarks: &mut Bookmarks) -> Result<()> {
     let mut buffer = String::new();
-    for (mark, path) in config.get_bookmarks() {
+    for (mark, path) in bookmarks.get_bookmarks() {
         buffer.push_str(&format!("{} : {}\n", mark, path.to_str().unwrap()));
     }
     println!("echo '{}'", buffer);
     Ok(())
 }
 
-fn add_bookmarks(args: &BookmarkSubArgs, config: &mut Config) -> Result<()> {
+fn add_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookmarks) -> Result<()> {
     if args.path.is_none() {
         return Err(Error::other("-- missing path argument"));
     } else {
-        config.add_bookmark(&args.name, &args.path.clone().unwrap())?;
+        bookmarks.add_bookmark(&args.name, &args.path.clone().unwrap())?;
     }
     Ok(())
 }
 
-fn remove_bookmarks(args: &BookmarkSubArgs, config: &mut Config) -> Result<()> {
-    config.remove_bookmark(&args.name)?;
+fn remove_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookmarks) -> Result<()> {
+    bookmarks.remove_bookmark(&args.name)?;
     Ok(())
 }
 
