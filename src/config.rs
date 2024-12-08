@@ -33,12 +33,16 @@ pub struct GeneralSettings {
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
+pub struct FormatSettings {
+    pub stack_separator: String,
+    pub bookmarks_separator: String,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone)]
 pub struct StyleSettings {
-    pub note: String,
-    pub warning: String,
-    pub error: String,
     pub stack_number: String,
-    pub stack_seperator: String,
+    pub stack_separator: String,
     pub stack_path: String,
     pub bookmarks_key: String,
     pub bookmarks_seperator: String,
@@ -60,11 +64,8 @@ impl Config {
                     show_stack_on_bookmark: false,
                 },
                 styles: StyleSettings {
-                    note: "".to_owned(),
-                    warning: "".to_owned(),
-                    error: "".to_owned(),
                     stack_number: "".to_owned(),
-                    stack_seperator: "".to_owned(),
+                    stack_separator: "".to_owned(),
                     stack_path: "".to_owned(),
                     bookmarks_key: "".to_owned(),
                     bookmarks_seperator: "".to_owned(),
@@ -93,5 +94,4 @@ impl Config {
     fn build_config(&mut self) -> Result<()> {
         Ok(())
     }
-
 }

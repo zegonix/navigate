@@ -86,7 +86,15 @@ fn handle_push(args: &PushArgs, _config: &Config, stack: &mut Stack) -> Result<(
 }
 
 fn handle_pop(args: &PopArgs, _config: &Config, stack: &mut Stack) -> Result<()> {
-    let path = stack.pop_entry(args.num_entries)?;
+    let mut num : Option<usize> = None;
+    if let Some(a) = &args.action {
+        match a {
+            PopAction::all => num = Some(0),
+        }
+    } else if let Some(n) = &args.num_entries {
+        num = Some(*n);
+    }
+    let path = stack.pop_entry(num)?;
     println!(
         "cd -- {}",
         match path.to_str() {
@@ -111,11 +119,11 @@ fn handle_stack(args: &StackArgs, config: &Config, stack: &mut Stack) -> Result<
 
 fn handle_bookmark(args: &BookmarkArgs, config: &Config, bookmarks: &mut Bookmarks, stack: &mut Stack) -> Result<()> {
     // if args.bookmark_action.is_some() {
-    if args.bookmark_action.is_some() {
-        match args.bookmark_action.clone().unwrap() {
+    if let Some(action) = &args.bookmark_action {
+        match action {
             BookmarkAction::list(_) => list_bookmarks(config, bookmarks)?,
-            BookmarkAction::add(args) => add_bookmarks(&args, config, bookmarks)?,
-            BookmarkAction::remove(args) => remove_bookmarks(&args, config, bookmarks)?,
+            BookmarkAction::add(args) => add_bookmarks(args, config, bookmarks)?,
+            BookmarkAction::remove(args) => remove_bookmarks(args, config, bookmarks)?,
         };
     } else if args.name.is_some() {
         let path = match bookmarks.get_bookmarks().get(args.name.as_ref().unwrap()) {

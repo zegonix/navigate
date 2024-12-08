@@ -43,7 +43,8 @@ impl Stack {
         fs::remove_file(self.path.clone())?;
         print!(
             "echo '{}stack cleared successfully.{}'",
-            config.settings.styles.note, config.settings.styles.reset
+            "",
+            "" // TODO implement styling
         );
         Ok(())
     }
@@ -61,12 +62,10 @@ impl Stack {
     /// return popped entry
     pub fn pop_entry(&mut self, num_entries: Option<usize>) -> Result<PathBuf> {
         let mut num = num_entries.unwrap_or(1);
-        if num < 1 {
-            num = 1;
-        } else if num > self.stack.len() {
+        if num == 0 || num > self.stack.len() {
             num = self.stack.len();
         }
-        let mut dropped_entries = self.stack.drain((self.stack.len()-num)..);
+        let mut dropped_entries = self.stack.drain((self.stack.len() - num)..);
         let entry = dropped_entries.nth(0);
         drop(dropped_entries);
         self.write_stack_file()?;

@@ -1,6 +1,5 @@
 use clap::{Args, Parser, Subcommand};
-use std::{path::PathBuf};
-
+use std::path::PathBuf;
 
 /// implements stack for cd wrapper script
 #[derive(Parser, Debug)]
@@ -43,12 +42,23 @@ pub struct PushArgs {
 
 #[derive(Debug, Clone, Args)]
 pub struct PopArgs {
+    /// pop multiple values, either a specified amount with a number, or all entries with 'all'
+    #[command(subcommand)]
+    pub action: Option<PopAction>,
+
     /// show stack
     #[arg(short, long)]
     pub show_stack: Option<bool>,
 
-    /// pop multiple entries and navigate to last retrieved path
+    /// pop specified number of entries
     pub num_entries: Option<usize>,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+#[allow(non_camel_case_types)]
+pub enum PopAction {
+    /// pop all entries and move to first entry in stack
+    all,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -93,7 +103,7 @@ pub enum BookmarkAction {
     add(BookmarkSubArgs),
 
     /// remove a bookmark by name `book remove <name>`
-    remove(BookmarkSubArgs)
+    remove(BookmarkSubArgs),
 }
 
 #[derive(Debug, Clone, Args)]
