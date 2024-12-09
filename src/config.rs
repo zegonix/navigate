@@ -1,12 +1,12 @@
 //! handle the config file and bookmarks stored
 //! in said config file
 
-use std::env::var;
-use std::fs;
-use std::fs::File;
 use std::io::{Error, Result};
 use std::path::PathBuf;
+use std::env::var;
+use std::fs;
 use std::str::FromStr;
+use toml::{from_str, Table};
 
 use crate::{RESET_SEQ, STYLES};
 
@@ -20,6 +20,7 @@ pub struct Config {
 #[derive(Debug, Clone)]
 pub struct Settings {
     pub general: GeneralSettings,
+    pub format: FormatSettings,
     pub styles: StyleSettings,
 }
 
@@ -63,6 +64,10 @@ impl Config {
                     show_stack_on_pop: false,
                     show_stack_on_bookmark: false,
                 },
+                format: FormatSettings {
+                    bookmarks_separator: " - ".to_owned(),
+                    stack_separator: " - ".to_owned(),
+                },
                 styles: StyleSettings {
                     stack_number: "".to_owned(),
                     stack_separator: "".to_owned(),
@@ -92,6 +97,15 @@ impl Config {
 
     /// reads and parses the configuration file
     fn build_config(&mut self) -> Result<()> {
+        let config_file = match fs::read_to_string(&self.conf_dir) {
+            Ok(value) => value,
+            Err(error) => return Err(error),
+        };
+        let conf_table = match config_file.parse::<Table>() {
+            Ok(value) => value,
+            Err(error) => return Err(Error::other(error.to_string())),
+        };
+
         Ok(())
     }
 }

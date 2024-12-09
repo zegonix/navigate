@@ -39,12 +39,10 @@ impl Stack {
     }
 
     /// clear stack by deleting the associated stack file
-    pub fn clear_stack(&mut self, config: &Config) -> Result<()> {
+    pub fn clear_stack(&mut self, _config: &Config) -> Result<()> {
         fs::remove_file(self.path.clone())?;
         print!(
-            "echo '{}stack cleared successfully.{}'",
-            "",
-            "" // TODO implement styling
+            "echo stack cleared successfully.'"
         );
         Ok(())
     }
