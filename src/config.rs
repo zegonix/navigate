@@ -1,54 +1,54 @@
+#![allow(dead_code)]
+
 //! handle the config file and bookmarks stored
 //! in said config file
 
+use crate::format::*;
+use dirs::config_dir;
+use serde::{Deserialize, Serialize};
+use std::fs;
 use std::io::{Error, Result};
 use std::path::PathBuf;
-use std::env::var;
-use std::fs;
-use std::str::FromStr;
-use toml::{from_str, Table};
-
-use crate::{RESET_SEQ, STYLES};
 
 #[derive(Debug, Clone)]
 pub struct Config {
-    conf_dir: PathBuf,
+    conf_file: PathBuf,
     pub settings: Settings,
 }
 
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+#[serde(default)]
 pub struct Settings {
     pub general: GeneralSettings,
     pub format: FormatSettings,
     pub styles: StyleSettings,
 }
 
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+#[serde(default)]
 pub struct GeneralSettings {
     pub show_stack_on_push: bool,
     pub show_stack_on_pop: bool,
     pub show_stack_on_bookmark: bool,
 }
 
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+#[serde(default)]
 pub struct FormatSettings {
     pub stack_separator: String,
     pub bookmarks_separator: String,
+    pub align_separators: bool,
 }
 
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+#[serde(default)]
 pub struct StyleSettings {
     pub stack_number: String,
     pub stack_separator: String,
     pub stack_path: String,
-    pub bookmarks_key: String,
+    pub bookmarks_name: String,
     pub bookmarks_seperator: String,
     pub bookmarks_path: String,
-    pub reset: String,
 }
 
 impl Config {
@@ -57,7 +57,7 @@ impl Config {
     /// generates and populates a new instance of Config
     pub fn new() -> Result<Self> {
         let mut config = Config {
-            conf_dir: PathBuf::new(),
+            conf_file: PathBuf::new(),
             settings: Settings {
                 general: GeneralSettings {
                     show_stack_on_push: false,
@@ -65,46 +65,110 @@ impl Config {
                     show_stack_on_bookmark: false,
                 },
                 format: FormatSettings {
-                    bookmarks_separator: " - ".to_owned(),
-                    stack_separator: " - ".to_owned(),
+                    bookmarks_separator: String::new(),
+                    stack_separator: String::new(),
+                    align_separators: false,
                 },
                 styles: StyleSettings {
-                    stack_number: "".to_owned(),
-                    stack_separator: "".to_owned(),
-                    stack_path: "".to_owned(),
-                    bookmarks_key: "".to_owned(),
-                    bookmarks_seperator: "".to_owned(),
-                    bookmarks_path: "".to_owned(),
-                    reset: RESET_SEQ.to_owned(),
+                    stack_number: String::new(),
+                    stack_separator: String::new(),
+                    stack_path: String::new(),
+                    bookmarks_name: String::new(),
+                    bookmarks_seperator: String::new(),
+                    bookmarks_path: String::new(),
                 },
             },
         };
-        // get home directory path
-        let home_dir = match var("HOME") {
-            Ok(value) => value,
-            Err(error) => return Err(Error::other(error.to_string())),
+        // get configuration directory
+        config.conf_file = match config_dir() {
+            Some(value) => value,
+            None => {
+                return Err(Error::other(
+                    "-- failed to retrieve configuration directory",
+                ))
+            }
         };
-        // create PathBuf object from home dir path
-        config.conf_dir = match PathBuf::from_str(&home_dir) {
-            Ok(value) => value,
-            Err(error) => return Err(Error::other(error.to_string())),
-        };
-        // expand home directory path to get configuration directory path
-        config.build_config()?;
+        // expand path to configuration file
+        config
+            .conf_file
+            .push(format!("navigate/{}", Self::CONFIG_FILE_NAME));
+
+        // parse configuration file and populate config struct
+        config.build_settings()?;
+        config.set_default_settings()?;
+        config.write_config_file()?;
 
         Ok(config)
     }
 
-    /// reads and parses the configuration file
-    fn build_config(&mut self) -> Result<()> {
-        let config_file = match fs::read_to_string(&self.conf_dir) {
-            Ok(value) => value,
-            Err(error) => return Err(error),
-        };
-        let conf_table = match config_file.parse::<Table>() {
+    /// formats and prints config to string
+    pub fn to_formatted_string(&self) -> Result<String> {
+        let mut buffer = String::new();
+        buffer = format!("{:#?}", self.settings);
+        Ok(buffer)
+    }
+
+    /// write configuration file to save changed settings
+    pub fn write_config_file(&self) -> Result<()> {
+        let conf_str = match toml::to_string(&self.settings) {
             Ok(value) => value,
             Err(error) => return Err(Error::other(error.to_string())),
         };
+        fs::write(self.conf_file.clone(), conf_str)
+    }
+
+    /// reads and parses the configuration file
+    fn build_settings(&mut self) -> Result<()> {
+        if !self.conf_file.is_file() {
+            return Ok(());
+        }
+        let config_str = match fs::read_to_string(&self.conf_file) {
+            Ok(value) => value,
+            Err(error) => return Err(error),
+        };
+        self.settings = match toml::from_str(&config_str) {
+            Ok(value) => value,
+            Err(error) => return Err(Error::other(error.to_string())),
+        };
+
+        Ok(())
+    }
+
+    /// sets defaults for settings not found in the configuration file
+    fn set_default_settings(&mut self) -> Result<()> {
+        let default_separator = " - ".to_owned();
+        let default_number_color =
+            generate_style_sequence(None, Some(COLORS.fg.default), Some(COLORS.bg.default));
+        let default_separator_color =
+            generate_style_sequence(None, Some(COLORS.fg.cyan), Some(COLORS.bg.default));
+        let default_path_color =
+            generate_style_sequence(None, Some(COLORS.fg.default), Some(COLORS.bg.default));
+
+        if self.settings.format.stack_separator.is_empty() {
+            self.settings.format.stack_separator = default_separator.clone();
+        }
+        if self.settings.format.bookmarks_separator.is_empty() {
+            self.settings.format.bookmarks_separator = default_separator.clone();
+        }
+
+        if self.settings.styles.stack_number.is_empty() {
+            self.settings.styles.stack_number = default_number_color.clone();
+        }
+        if self.settings.styles.stack_separator.is_empty() {
+            self.settings.styles.stack_separator = default_separator_color.clone();
+        }
+        if self.settings.styles.stack_path.is_empty() {
+            self.settings.styles.stack_path = default_path_color.clone();
+        }
+        if self.settings.styles.bookmarks_name.is_empty() {
+            self.settings.styles.bookmarks_name = default_number_color.clone();
+        }
+        if self.settings.styles.bookmarks_seperator.is_empty() {
+            self.settings.styles.bookmarks_seperator = default_separator_color.clone();
+        }
+        if self.settings.styles.bookmarks_path.is_empty() {
+            self.settings.styles.bookmarks_path = default_path_color.clone();
+        }
 
         Ok(())
     }

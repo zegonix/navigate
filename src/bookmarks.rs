@@ -9,7 +9,9 @@ use std::io::{Error, Result};
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::{RESET_SEQ, STYLES};
+use crate::make_padding_string;
+
+use super::{apply_format, config::*};
 
 #[derive(Debug, Clone)]
 pub struct Bookmarks {
@@ -80,23 +82,15 @@ impl Bookmarks {
         Ok(())
     }
 
-    /// writes the bookmarks file
-    fn write_bookmark_file(&self) -> Result<()> {
-        let mut file_content = String::new();
-        for (mark, path) in self.bookmarks.iter() {
-            file_content.push_str(&format!("{}={}\n", mark, path.to_str().unwrap()));
+    /// returns path of bookmark if it exists
+    pub fn get_path_by_name(&mut self, name: &str) -> Result<PathBuf> {
+        match self.bookmarks.get(name) {
+            Some(value) => Ok(value.to_owned()),
+            None => Err(Error::other(format!(
+                "-- bookmark with name `{}` does not exist",
+                name
+            ))),
         }
-
-        let mut path = self.conf_dir.clone();
-        path.push(Self::BOOKMARK_FILE_NAME);
-
-        fs::write(path, file_content)?;
-        Ok(())
-    }
-
-    /// returns a mutable reference to self.bookmarks
-    pub fn get_bookmarks(&mut self) -> &mut HashMap<String, PathBuf> {
-        &mut self.bookmarks
     }
 
     /// adds a key/value pair to bookmarks and writes the bookmarks file
@@ -122,6 +116,49 @@ impl Bookmarks {
                 "-- bookmark requested to delete does not exist",
             ));
         }
+        Ok(())
+    }
+
+    /// formats and prints bookmarks to string
+    pub fn to_formatted_string(&self, config: &Settings) -> Result<String> {
+        let mut buffer = String::new();
+
+        if self.bookmarks.is_empty() {
+            buffer.push_str("-- there are no bookmarks defined");
+        } else {
+            let max_name_len =  match self.bookmarks.keys().map(String::len).max() {
+                Some(value) => value,
+                None => return Err(Error::other("-- failed to determine maximum bookmark name length")),
+            };
+            for (mark, path) in &self.bookmarks {
+                let padding = make_padding_string(max_name_len - mark.len());
+                let name = apply_format(mark, &config.styles.bookmarks_name);
+                let separator = apply_format(
+                    &config.format.bookmarks_separator,
+                    &config.styles.bookmarks_seperator,
+                );
+                let path = apply_format(path.to_str().unwrap(), &config.styles.bookmarks_path);
+                if config.format.align_separators {
+                    buffer.push_str(&format!("{}{}{}{}\n", name, padding, separator, path));
+                } else {
+                    buffer.push_str(&format!("{}{}{}{}\n", name, separator, padding, path));
+                }
+            }
+        }
+        Ok(buffer)
+    }
+
+    /// writes the bookmarks file
+    fn write_bookmark_file(&self) -> Result<()> {
+        let mut file_content = String::new();
+        for (mark, path) in self.bookmarks.iter() {
+            file_content.push_str(&format!("{}={}\n", mark, path.to_str().unwrap()));
+        }
+
+        let mut path = self.conf_dir.clone();
+        path.push(Self::BOOKMARK_FILE_NAME);
+
+        fs::write(path, file_content)?;
         Ok(())
     }
 }

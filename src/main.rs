@@ -3,6 +3,7 @@ mod format;
 mod config;
 mod bookmarks;
 mod stack;
+mod debug;
 
 use arguments::*;
 use clap::Parser;
@@ -54,6 +55,7 @@ fn main() -> Result<()> {
         Action::pop(pop_args) => handle_pop(&pop_args, &config, &mut stack),
         Action::stack(stack_args) => handle_stack(&stack_args, &config, &mut stack),
         Action::bookmark(bookmark_args) => handle_bookmark(&bookmark_args, &config, &mut bookmarks, &mut stack),
+        // Action::config(config_args) => handle_config(&config_args, &config),
     };
 
     if res.is_err() {
@@ -108,11 +110,11 @@ fn handle_pop(args: &PopArgs, _config: &Config, stack: &mut Stack) -> Result<()>
 fn handle_stack(args: &StackArgs, config: &Config, stack: &mut Stack) -> Result<()> {
     if args.stack_action.is_some() {
         match args.stack_action.clone().unwrap() {
-            StackAction::clear(_) => return stack.clear_stack(config),
+            StackAction::clear(_) => return stack.clear_stack(&config.settings),
         }
     }
     // retrieve stack
-    let output: String = stack.to_string(None)?;
+    let output: String = stack.to_formatted_string(&config.settings)?;
     print!("echo '{}'", output);
     Ok(())
 }
@@ -125,12 +127,9 @@ fn handle_bookmark(args: &BookmarkArgs, config: &Config, bookmarks: &mut Bookmar
             BookmarkAction::add(args) => add_bookmarks(args, config, bookmarks)?,
             BookmarkAction::remove(args) => remove_bookmarks(args, config, bookmarks)?,
         };
-    } else if args.name.is_some() {
-        let path = match bookmarks.get_bookmarks().get(args.name.as_ref().unwrap()) {
-            Some(value) => value,
-            None => return Err(Error::other("-- requested bookmark does not exist")),
-        };
-        push_path(path, stack)?;
+    } else if args.name.is_some() { // handle `change to bookmark`
+        let path = bookmarks.get_path_by_name(args.name.as_ref().unwrap())?;
+        push_path(&path, stack)?;
     } else {
         return Err(Error::other(
             "-- provide either a `subcommand` or a `bookmark name`",
@@ -139,12 +138,16 @@ fn handle_bookmark(args: &BookmarkArgs, config: &Config, bookmarks: &mut Bookmar
     Ok(())
 }
 
+// fn handle_config(args: &ConfigArgs, config: &Config) -> Result<()> {
+//     match args {
+//         ConfigAction::show => println!("echo '{}'", config.to_formatted_string()),
+//     }
+//     Ok(())
+// }
+
 fn list_bookmarks(config: &Config, bookmarks: &mut Bookmarks) -> Result<()> {
-    let mut buffer = String::new();
-    for (mark, path) in bookmarks.get_bookmarks() {
-        buffer.push_str(&format!("{} : {}\n", mark, path.to_str().unwrap()));
-    }
-    println!("echo '{}'", buffer);
+    let output = bookmarks.to_formatted_string(&config.settings)?;
+    println!("echo '{}'", output);
     Ok(())
 }
 

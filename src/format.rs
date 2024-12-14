@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 pub const ESC: &str = "\x1B";
 pub const PREFIX: &str = "\x1B[";
 pub const RESET_ARG: &str = "0";
@@ -105,6 +107,11 @@ pub enum ColorContext {
     Background,
 }
 
+/// prepends input with style string and appends the reset sequence at the end
+pub fn apply_format(input: &str, style: &str) -> String {
+    format!("{}{}{}", style, input, RESET_SEQ)
+}
+
 /// generates a common style sequence of format
 /// `\x1B[<styles>;<foreground-color>;<background-color>m`
 /// all elements are optional, if none is supplied the function returns an error
@@ -131,7 +138,7 @@ pub fn generate_style_sequence(
     }
 
     // panic if no arguments provided since this is a programming mistake
-    // which should not 
+    // which should not
     if arguments.is_empty() {
         panic!("no arguments provided to 'generate_style_sequence()'");
     }
@@ -157,7 +164,7 @@ pub fn generate_256color_sequence(context: ColorContext, color: u8) -> String {
 
 /// generates a rgb color sequence
 /// **note**: not all terminal emulators support rgb colors
-/// 
+///
 /// rgb sequences are built the same as 256 color sequences:
 /// `\x1B[<context>;2;<r>;<g>;<b>m`
 /// where *context* is either '38' or '48' for foreground and background respectively
@@ -173,4 +180,10 @@ pub fn generate_rgb_sequence(context: ColorContext, red: u8, green: u8, blue: u8
     sequence.push_str(";2;");
     sequence.push_str(&format!("{red};{green};{blue}m"));
     sequence
+}
+
+/// generates a padding string for numbers in a list
+pub fn make_padding_string(len: usize) -> String {
+    // determine padding needed to align the paths
+    String::from_utf8(vec![b' '; len]).unwrap()
 }

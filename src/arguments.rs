@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+#![allow(non_camel_case_types)]
+
 use clap::{Args, Parser, Subcommand};
 use std::path::PathBuf;
 
@@ -15,7 +18,6 @@ pub struct Arguments {
 }
 
 #[derive(Debug, Clone, Subcommand)]
-#[allow(non_camel_case_types)]
 pub enum Action {
     /// navigate to path and add current path to the stack
     push(PushArgs),
@@ -55,7 +57,6 @@ pub struct PopArgs {
 }
 
 #[derive(Debug, Clone, Subcommand)]
-#[allow(non_camel_case_types)]
 pub enum PopAction {
     /// pop all entries and move to first entry in stack
     all,
@@ -77,7 +78,6 @@ pub struct StackArgs {
 }
 
 #[derive(Debug, Clone, Subcommand)]
-#[allow(non_camel_case_types)]
 pub enum StackAction {
     /// clear stack
     clear(EmptyArgs),
@@ -94,7 +94,6 @@ pub struct BookmarkArgs {
 }
 
 #[derive(Debug, Clone, Subcommand)]
-#[allow(non_camel_case_types)]
 pub enum BookmarkAction {
     /// list all bookmarks
     list(EmptyArgs),

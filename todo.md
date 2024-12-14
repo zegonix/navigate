@@ -5,8 +5,8 @@
 - [x] drop stack
 - [ ] config file
   - [ ] dedup stack option
-  - [ ] parse config file
-  - [ ] apply config
+  - [ ] parse config file -- partially done, handling of colors to be fixed
+  - [ ] apply config -- partially done
   - [ ] colored output > make it configurable through config file
-  - [ ] setting for separator string when displaying stack/bookmarks
+  - [x] setting for separator string when displaying stack/bookmarks
 - [x] bookmarks 

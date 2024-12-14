@@ -1,10 +1,15 @@
-use super::config::*;
+#![allow(dead_code)]
+
 use std::fs;
 use std::fs::File;
 use std::io::{Error, Result};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use sysinfo::{Pid, System};
+
+use crate::make_padding_string;
+
+use super::{apply_format, config::*};
 
 #[derive(Debug, Clone)]
 pub struct Stack {
@@ -25,25 +30,37 @@ impl Stack {
         Ok(stack)
     }
 
-    // return stack
-    pub fn to_string(&self, _settings: Option<Settings>) -> Result<String> {
+    // formats and prints stack to string
+    pub fn to_formatted_string(&self, config: &Settings) -> Result<String> {
+        let mut buffer: String = "".to_string();
+
         if self.stack.is_empty() {
-            return Err(Error::other("-- the stack is empty"));
+            buffer.push_str("-- the stack is empty");
+        } else {
+            // print stack to string
+            let max_num_len = self.stack.len().to_string().len();
+            for (n, item) in self.stack.iter().rev().enumerate() {
+                let padding = make_padding_string(max_num_len - n.to_string().len());
+                let number = apply_format(&n.to_string(), &config.styles.stack_number);
+                let separator = apply_format(
+                    &config.format.stack_separator,
+                    &config.styles.stack_separator,
+                );
+                let path = apply_format(item.to_str().unwrap(), &config.styles.stack_path);
+                if config.format.align_separators {
+                    buffer.push_str(&format!("{}{}{}{}\n", number, padding, separator, path));
+                } else {
+                    buffer.push_str(&format!("{}{}{}{}\n", number, separator, padding, path));
+                }
+            }
         }
-        // print stack to string
-        let mut output: String = "".to_string();
-        for (n, item) in self.stack.iter().rev().enumerate() {
-            output.push_str(&format!("'{} - {}'\n", n, item.to_str().unwrap()));
-        }
-        Ok(output)
+        Ok(buffer)
     }
 
     /// clear stack by deleting the associated stack file
-    pub fn clear_stack(&mut self, _config: &Config) -> Result<()> {
+    pub fn clear_stack(&mut self, config: &Settings) -> Result<()> {
         fs::remove_file(self.path.clone())?;
-        print!(
-            "echo stack cleared successfully.'"
-        );
+        print!("echo 'stack cleared successfully.'");
         Ok(())
     }
 
@@ -172,4 +189,4 @@ impl Stack {
 
         Ok(())
     }
-} // end `impl database`
+}
