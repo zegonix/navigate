@@ -94,9 +94,12 @@ impl Config {
             .push(format!("navigate/{}", Self::CONFIG_FILE_NAME));
 
         // parse configuration file and populate config struct
-        config.build_settings()?;
+        let file_error = config.build_settings();
         config.set_default_settings()?;
-        config.write_config_file()?;
+        if file_error.is_err() {
+            config.write_config_file()?;
+        }
+        config.parse_color_settings()?;
 
         Ok(config)
     }
@@ -108,19 +111,12 @@ impl Config {
         Ok(buffer)
     }
 
-    /// write configuration file to save changed settings
-    pub fn write_config_file(&self) -> Result<()> {
-        let conf_str = match toml::to_string(&self.settings) {
-            Ok(value) => value,
-            Err(error) => return Err(Error::other(error.to_string())),
-        };
-        fs::write(self.conf_file.clone(), conf_str)
-    }
-
     /// reads and parses the configuration file
     fn build_settings(&mut self) -> Result<()> {
         if !self.conf_file.is_file() {
-            return Ok(());
+            return Err(Error::other(
+                "-- config file `navigation.conf` does not exist",
+            ));
         }
         let config_str = match fs::read_to_string(&self.conf_file) {
             Ok(value) => value,
@@ -130,19 +126,15 @@ impl Config {
             Ok(value) => value,
             Err(error) => return Err(Error::other(error.to_string())),
         };
-
         Ok(())
     }
 
     /// sets defaults for settings not found in the configuration file
     fn set_default_settings(&mut self) -> Result<()> {
         let default_separator = " - ".to_owned();
-        let default_number_color =
-            generate_style_sequence(None, Some(COLORS.fg.default), Some(COLORS.bg.default));
-        let default_separator_color =
-            generate_style_sequence(None, Some(COLORS.fg.cyan), Some(COLORS.bg.default));
-        let default_path_color =
-            generate_style_sequence(None, Some(COLORS.fg.default), Some(COLORS.bg.default));
+        let default_number_color = "default".to_owned();
+        let default_separator_color = "cyan".to_owned();
+        let default_path_color = "default".to_owned();
 
         if self.settings.format.stack_separator.is_empty() {
             self.settings.format.stack_separator = default_separator.clone();
@@ -170,6 +162,30 @@ impl Config {
             self.settings.styles.bookmarks_path = default_path_color.clone();
         }
 
+        Ok(())
+    }
+
+    /// write configuration file to save changed settings
+    pub fn write_config_file(&self) -> Result<()> {
+        let conf_str = match toml::to_string(&self.settings) {
+            Ok(value) => value,
+            Err(error) => return Err(Error::other(error.to_string())),
+        };
+        fs::write(self.conf_file.clone(), conf_str)
+    }
+
+    /// convert color settings to ansi escape sequences
+    pub fn parse_color_settings(&mut self) -> Result<()> {
+        self.settings.styles.stack_number = parse_color(self.settings.styles.stack_number.clone())?;
+        self.settings.styles.stack_separator =
+            parse_color(self.settings.styles.stack_separator.clone())?;
+        self.settings.styles.stack_path = parse_color(self.settings.styles.stack_path.clone())?;
+        self.settings.styles.bookmarks_name =
+            parse_color(self.settings.styles.bookmarks_name.clone())?;
+        self.settings.styles.bookmarks_seperator =
+            parse_color(self.settings.styles.bookmarks_seperator.clone())?;
+        self.settings.styles.bookmarks_path =
+            parse_color(self.settings.styles.bookmarks_path.clone())?;
         Ok(())
     }
 }

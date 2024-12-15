@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::io::{Result, Error};
+
 pub const ESC: &str = "\x1B";
 pub const PREFIX: &str = "\x1B[";
 pub const RESET_ARG: &str = "0";
@@ -186,4 +188,68 @@ pub fn generate_rgb_sequence(context: ColorContext, red: u8, green: u8, blue: u8
 pub fn make_padding_string(len: usize) -> String {
     // determine padding needed to align the paths
     String::from_utf8(vec![b' '; len]).unwrap()
+}
+
+/// convert color setting to ansi escape sequence
+pub fn parse_color(color: String) -> Result<String> {
+    // check for numbered color
+    if let Ok(numbered) = color.parse::<u8>() {
+        return Ok(generate_256color_sequence(
+            ColorContext::Foreground,
+            numbered,
+        ));
+    }
+    // check for rgb color
+    if color.as_bytes()[0] == b'#' && color.len() == 7 {
+        // match u8::from_str_radix(&color, 16) {
+        let red = match u8::from_str_radix(&color[1..=2], 16) {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(Error::other(format!(
+                    "-- failed to parse rgb color `{}` in config file",
+                    color
+                )))
+            }
+        };
+        let green = match u8::from_str_radix(&color[3..=4], 16) {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(Error::other(format!(
+                    "-- failed to parse rgb color `{}` in config file",
+                    color
+                )))
+            }
+        };
+        let blue = match u8::from_str_radix(&color[5..=6], 16) {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(Error::other(format!(
+                    "-- failed to parse rgb color `{}` in config file",
+                    color
+                )))
+            }
+        };
+        return Ok(generate_rgb_sequence(
+            ColorContext::Foreground,
+            red,
+            green,
+            blue,
+        ));
+    }
+    // check for named color
+    match color.to_ascii_lowercase().as_str() {
+        "black" => Ok(generate_style_sequence(None, Some(COLORS.fg.black), None)),
+        "red" => Ok(generate_style_sequence(None, Some(COLORS.fg.red), None)),
+        "green" => Ok(generate_style_sequence(None, Some(COLORS.fg.green), None)),
+        "yellow" => Ok(generate_style_sequence(None, Some(COLORS.fg.yellow), None)),
+        "blue" => Ok(generate_style_sequence(None, Some(COLORS.fg.blue), None)),
+        "magenta" => Ok(generate_style_sequence(None, Some(COLORS.fg.magenta), None)),
+        "cyan" => Ok(generate_style_sequence(None, Some(COLORS.fg.cyan), None)),
+        "white" => Ok(generate_style_sequence(None, Some(COLORS.fg.white), None)),
+        "default" => Ok(generate_style_sequence(None, Some(COLORS.fg.default), None)),
+        _ => Err(Error::other(format!(
+            "-- could not parse color `{}` in config file",
+            color
+        ))),
+    }
 }

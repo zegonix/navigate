@@ -30,7 +30,7 @@ impl Stack {
         Ok(stack)
     }
 
-    // formats and prints stack to string
+    /// formats and prints stack to string
     pub fn to_formatted_string(&self, config: &Settings) -> Result<String> {
         let mut buffer: String = "".to_string();
 
