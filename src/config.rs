@@ -10,6 +10,21 @@ use std::fs;
 use std::io::{Error, Result};
 use std::path::PathBuf;
 
+// macro_rules! generate_field_names {
+//     ($(#[$attr:meta])* struct $name:ident { $($fname:ident : $ftype:ty),* }) => {
+//         $(#[$attr])* struct $name {
+//             $($fname : $ftype),*
+//         }
+
+//         impl $name {
+//             fn field_names() -> &'static [&'static str] {
+//                 static NAMES: &'static [&'static str] = &[$(stringify!($fname)),*];
+//                 NAMES
+//             }
+//         }
+//     }
+// }
+
 #[derive(Debug, Clone)]
 pub struct Config {
     conf_file: PathBuf,

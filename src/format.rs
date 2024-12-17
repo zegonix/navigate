@@ -193,7 +193,7 @@ pub fn make_padding_string(len: usize) -> String {
 /// convert color setting to ansi escape sequence
 pub fn parse_color(color: String) -> Result<String> {
     // check for numbered color
-    if let Ok(numbered) = color.parse::<u8>() {
+    if let Ok(numbered) = color.parse::<u8>() { // TODO: only accept numbers between 16 and 256
         return Ok(generate_256color_sequence(
             ColorContext::Foreground,
             numbered,
