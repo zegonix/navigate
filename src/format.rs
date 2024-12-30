@@ -191,53 +191,17 @@ pub fn make_padding_string(len: usize) -> String {
 }
 
 /// convert color setting to ansi escape sequence
-pub fn parse_color(color: String) -> Result<String> {
+pub fn parse_style(string: String) -> Result<String> {
     // check for numbered color
-    if let Ok(numbered) = color.parse::<u8>() { // TODO: only accept numbers between 16 and 256
-        return Ok(generate_256color_sequence(
-            ColorContext::Foreground,
-            numbered,
-        ));
+    if let Ok(sequence) = parse_numbered_color(&string) {
+        return Ok(sequence);
     }
     // check for rgb color
-    if color.as_bytes()[0] == b'#' && color.len() == 7 {
-        // match u8::from_str_radix(&color, 16) {
-        let red = match u8::from_str_radix(&color[1..=2], 16) {
-            Ok(value) => value,
-            Err(_) => {
-                return Err(Error::other(format!(
-                    "-- failed to parse rgb color `{}` in config file",
-                    color
-                )))
-            }
-        };
-        let green = match u8::from_str_radix(&color[3..=4], 16) {
-            Ok(value) => value,
-            Err(_) => {
-                return Err(Error::other(format!(
-                    "-- failed to parse rgb color `{}` in config file",
-                    color
-                )))
-            }
-        };
-        let blue = match u8::from_str_radix(&color[5..=6], 16) {
-            Ok(value) => value,
-            Err(_) => {
-                return Err(Error::other(format!(
-                    "-- failed to parse rgb color `{}` in config file",
-                    color
-                )))
-            }
-        };
-        return Ok(generate_rgb_sequence(
-            ColorContext::Foreground,
-            red,
-            green,
-            blue,
-        ));
+    if let Ok(sequence) = parse_rgb_color(&string) {
+        return Ok(sequence);
     }
     // check for named color
-    match color.to_ascii_lowercase().as_str() {
+    match string.to_ascii_lowercase().as_str() {
         "black" => Ok(generate_style_sequence(None, Some(COLORS.fg.black), None)),
         "red" => Ok(generate_style_sequence(None, Some(COLORS.fg.red), None)),
         "green" => Ok(generate_style_sequence(None, Some(COLORS.fg.green), None)),
@@ -249,7 +213,60 @@ pub fn parse_color(color: String) -> Result<String> {
         "default" => Ok(generate_style_sequence(None, Some(COLORS.fg.default), None)),
         _ => Err(Error::other(format!(
             "-- could not parse color `{}` in config file",
-            color
+            string
         ))),
     }
+}
+
+fn parse_numbered_color(string: &String) -> Result<String> {
+    // check for numbered color
+    if let Ok(number) = string.parse::<u8>() {
+        if number >= 16 {
+        return Ok(generate_256color_sequence(
+            ColorContext::Foreground,
+            number,
+        ));}
+    }
+    Err(Error::other(format!("no numbered color found in '{}'", string)))
+}
+
+fn parse_rgb_color(string: &String) -> Result<String> {
+    // check for rgb color
+    if string.as_bytes()[0] == b'#' && string.len() == 7 {
+        // match u8::from_str_radix(&color, 16) {
+        let red = match u8::from_str_radix(&string[1..=2], 16) {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(Error::other(format!(
+                    "-- failed to parse rgb color `{}` in config file",
+                    string
+                )))
+            }
+        };
+        let green = match u8::from_str_radix(&string[3..=4], 16) {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(Error::other(format!(
+                    "-- failed to parse rgb color `{}` in config file",
+                    string
+                )))
+            }
+        };
+        let blue = match u8::from_str_radix(&string[5..=6], 16) {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(Error::other(format!(
+                    "-- failed to parse rgb color `{}` in config file",
+                    string
+                )))
+            }
+        };
+        return Ok(generate_rgb_sequence(
+            ColorContext::Foreground,
+            red,
+            green,
+            blue,
+        ));
+    }
+    Err(Error::other(format!("no rgb color found in '{}'", string)))
 }

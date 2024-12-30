@@ -9,3 +9,4 @@ dirs = "5.0.1"
 serde = { version = "1.0.216", features = [ "std", "derive" ] }
 sysinfo = "0.32.0"
 toml = "0.8.19"
+derive_config_parser = { path = "derive_config_parser" }

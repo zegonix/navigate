@@ -5,25 +5,10 @@
 
 use crate::format::*;
 use dirs::config_dir;
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{Error, Result};
 use std::path::PathBuf;
-
-// macro_rules! generate_field_names {
-//     ($(#[$attr:meta])* struct $name:ident { $($fname:ident : $ftype:ty),* }) => {
-//         $(#[$attr])* struct $name {
-//             $($fname : $ftype),*
-//         }
-
-//         impl $name {
-//             fn field_names() -> &'static [&'static str] {
-//                 static NAMES: &'static [&'static str] = &[$(stringify!($fname)),*];
-//                 NAMES
-//             }
-//         }
-//     }
-// }
+use derive_config_parser::ConfigParser;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -31,32 +16,28 @@ pub struct Config {
     pub settings: Settings,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Default)]
-#[serde(default)]
+#[derive(Debug, Clone, Default)]
 pub struct Settings {
     pub general: GeneralSettings,
     pub format: FormatSettings,
     pub styles: StyleSettings,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Default)]
-#[serde(default)]
+#[derive(Debug, Clone, Default)]
 pub struct GeneralSettings {
     pub show_stack_on_push: bool,
     pub show_stack_on_pop: bool,
     pub show_stack_on_bookmark: bool,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Default)]
-#[serde(default)]
+#[derive(Debug, Clone, Default)]
 pub struct FormatSettings {
     pub stack_separator: String,
     pub bookmarks_separator: String,
     pub align_separators: bool,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Default)]
-#[serde(default)]
+#[derive(Debug, Clone, Default, ConfigParser)]
 pub struct StyleSettings {
     pub stack_number: String,
     pub stack_separator: String,
@@ -121,9 +102,7 @@ impl Config {
 
     /// formats and prints config to string
     pub fn to_formatted_string(&self) -> Result<String> {
-        let mut buffer = String::new();
-        buffer = format!("{:#?}", self.settings);
-        Ok(buffer)
+        Ok(format!("{:#?}", self.settings))
     }
 
     /// reads and parses the configuration file
@@ -191,16 +170,16 @@ impl Config {
 
     /// convert color settings to ansi escape sequences
     pub fn parse_color_settings(&mut self) -> Result<()> {
-        self.settings.styles.stack_number = parse_color(self.settings.styles.stack_number.clone())?;
+        self.settings.styles.stack_number = parse_style(self.settings.styles.stack_number.clone())?;
         self.settings.styles.stack_separator =
-            parse_color(self.settings.styles.stack_separator.clone())?;
-        self.settings.styles.stack_path = parse_color(self.settings.styles.stack_path.clone())?;
+            parse_style(self.settings.styles.stack_separator.clone())?;
+        self.settings.styles.stack_path = parse_style(self.settings.styles.stack_path.clone())?;
         self.settings.styles.bookmarks_name =
-            parse_color(self.settings.styles.bookmarks_name.clone())?;
+            parse_style(self.settings.styles.bookmarks_name.clone())?;
         self.settings.styles.bookmarks_seperator =
-            parse_color(self.settings.styles.bookmarks_seperator.clone())?;
+            parse_style(self.settings.styles.bookmarks_seperator.clone())?;
         self.settings.styles.bookmarks_path =
-            parse_color(self.settings.styles.bookmarks_path.clone())?;
+            parse_style(self.settings.styles.bookmarks_path.clone())?;
         Ok(())
     }
 }
