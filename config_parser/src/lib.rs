@@ -1,5 +1,5 @@
 use common::gen_config_load_function;
-use proc_macro::{TokenStream}; // TODO: change to proc_macro2, to hopefully fix #assignments
+use proc_macro2::{TokenStream}; // TODO: change to proc_macro2, to hopefully fix #assignments
 use syn::{parse_macro_input, spanned::Spanned, DeriveInput, Ident};
 use quote::{quote};
 
@@ -11,11 +11,11 @@ mod common;
 /// which parses a string and fills the fills recognised values into the struct
 /// - implements `write_default_config() -> Result<String>`
 /// which write a default configuration, in case the documentation is lacking
-#[proc_macro_derive(ConfigParser, attributes(nested_config, testtest))]
-pub fn derive(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(ConfigParser, attributes(nested_config))]
+pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
     let name = &ast.ident;
-    let config_name = "config".to_string(); //syn::Ident::new("config", name.span()); // TODO: use correct span
+    let config_name = syn::Ident::new("config", name.span()); // TODO: use correct span
     let fields = if let syn::Data::Struct(syn::DataStruct{ fields: syn::Fields::Named(syn::FieldsNamed{ ref named, .. }), .. }) = ast.data {
         named
     } else {
@@ -23,16 +23,8 @@ pub fn derive(input: TokenStream) -> TokenStream {
     };
     let assignments = match gen_config_load_function(fields, &config_name) {
         Ok(value) => value,
-        Err(error) => panic!("loading config failed"),
+        Err(_) => panic!("loading config failed"),
     };
-
-    //let assign_fields = fields.iter().map(|f|{
-    //    if let Some(name) = &f.ident {
-    //        quote! {
-    //            if 
-    //        }
-    //    }
-    //});
 
     //let string = format!("{:#?}", ast);
     //_ = std::fs::write("test.txt", string);
@@ -41,7 +33,9 @@ pub fn derive(input: TokenStream) -> TokenStream {
         impl #name {
             pub fn parse_from_string(&mut self, input: &String) -> std::io::Result<()> {
                 let #config_name : std::collections::HashMap<String, String> = Self::parse_config_file(input)?;
+
                 #assignments
+
                 Ok(())
             }
 
@@ -49,7 +43,11 @@ pub fn derive(input: TokenStream) -> TokenStream {
             /// this function needs to be public for nested configs but is not intended
             /// to be called by the user
             pub fn parse_from_map(&mut self, input: &std::collections::HashMap<String, String>) -> std::io::Result<()> {
-                todo!();
+                let #config_name = input;
+
+                #assignments
+
+                Ok(())
             }
 
             fn parse_config_file(input: &String) -> std::io::Result<std::collections::HashMap<String, String>> {
@@ -84,9 +82,16 @@ pub fn derive(input: TokenStream) -> TokenStream {
                 }
                 Ok(config)
             }
+
+            // TODO: implement
+            pub fn write_default_config(&self) -> Result<()> {
+                Ok(())
+            }
+
+            // TODO: implement function to parse style settings
         }
     }.into();
-    expanded_stream
+    expanded_stream.into()
     //TokenStream::new()
 }
 

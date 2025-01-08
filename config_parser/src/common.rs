@@ -1,39 +1,45 @@
 #![allow(dead_code)]
 
-use proc_macro::TokenStream;
-use syn::{parse_macro_input, DeriveInput};
-use quote::{quote};
+use proc_macro2::TokenStream;
+use quote::{quote, TokenStreamExt};
 
 use syn::{Attribute, Error, Field, Meta, Path, punctuated::Punctuated, token::Comma};
 
-pub fn gen_config_load_function(fields: &Punctuated<Field, Comma>, config_map_name: &String) -> Result<TokenStream, Error> {
-    let assignments = fields.iter().map(|f|{
-        let attr = &f.attrs;
-        let name = match &f.ident {
+pub fn gen_config_load_function(fields: &Punctuated<Field, Comma>, config_map_name: &syn::Ident) -> Result<TokenStream, Error> {
+    let mut assignments : TokenStream = TokenStream::new();
+    'field_loop: for field in fields.iter() {
+        let attr = &field.attrs;
+        let name = match &field.ident {
             Some(value) => value,
             // skip anonymous fields
-            None => return quote! {},
+            None => continue 'field_loop,
         };
         let name_string: String = name.to_string();
-        let ty = &f.ty;
+        let ty = &field.ty;
         for attribute in attr {
             if let Attribute{ meta: Meta::Path( Path{segments: attr_name, ..} ), .. } = attribute {
                 match attr_name.first() {
                     Some(value) => if value.ident == "nested_config" {
-                        return quote! {#name.parse_from_map(&#config_map_name)}
+                        assignments.extend(quote! {
+                            self.#name.parse_from_map(&#config_map_name);
+                        });
+                        continue 'field_loop;
                     },
                     None => (),
                 }
             }
         }
-        quote! {
+        assignments.extend(quote! {
             self.#name = match #config_map_name.get(#name_string) {
-                Some(value) => value,
-                None => self.#name,
-            }
-        }
-    });
-    Ok(quote! {assignments}.into())
+                Some(value) => match value.parse::<#ty>() {
+                    Ok(parsed) => parsed,
+                    Err(_) => self.#name.clone(),
+                },
+                None => self.#name.clone(),
+            };
+        });
+    }
+    Ok(assignments.into())
 }
 
 //pub fn parse_config_file(input: &String) -> std::io::Result<std::collections::HashMap<String, String>> {
