@@ -8,7 +8,7 @@ use dirs::config_dir;
 use std::fs;
 use std::io::{Error, Result};
 use std::path::PathBuf;
-use derive_config_parser::ConfigParser;
+use config_parser::ConfigParser;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -16,21 +16,24 @@ pub struct Config {
     pub settings: Settings,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, ConfigParser)]
 pub struct Settings {
+    #[nested_config]
     pub general: GeneralSettings,
+    #[nested_config]
     pub format: FormatSettings,
+    #[nested_config]
     pub styles: StyleSettings,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, ConfigParser)]
 pub struct GeneralSettings {
     pub show_stack_on_push: bool,
     pub show_stack_on_pop: bool,
     pub show_stack_on_bookmark: bool,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, ConfigParser)]
 pub struct FormatSettings {
     pub stack_separator: String,
     pub bookmarks_separator: String,
@@ -90,12 +93,19 @@ impl Config {
             .push(format!("navigate/{}", Self::CONFIG_FILE_NAME));
 
         // parse configuration file and populate config struct
-        let file_error = config.build_settings();
-        config.set_default_settings()?;
-        if file_error.is_err() {
-            config.write_config_file()?;
+        if config.conf_file.is_file() {
+            let config_str = match fs::read_to_string(&config.conf_file) {
+                Ok(value) => value,
+                Err(error) => return Err(error),
+            };
+            _ = config.settings.parse_from_string(&config_str);
+        } else {
+            // TODO: write default configuration
         }
-        config.parse_color_settings()?;
+
+        // TODO: ALSDKJFJFJASDkk
+        //config.set_default_settings()?;
+        //config.parse_color_settings()?;
 
         Ok(config)
     }
@@ -107,19 +117,6 @@ impl Config {
 
     /// reads and parses the configuration file
     fn build_settings(&mut self) -> Result<()> {
-        if !self.conf_file.is_file() {
-            return Err(Error::other(
-                "-- config file `navigation.conf` does not exist",
-            ));
-        }
-        let config_str = match fs::read_to_string(&self.conf_file) {
-            Ok(value) => value,
-            Err(error) => return Err(error),
-        };
-        self.settings = match toml::from_str(&config_str) {
-            Ok(value) => value,
-            Err(error) => return Err(Error::other(error.to_string())),
-        };
         Ok(())
     }
 
@@ -157,15 +154,6 @@ impl Config {
         }
 
         Ok(())
-    }
-
-    /// write configuration file to save changed settings
-    pub fn write_config_file(&self) -> Result<()> {
-        let conf_str = match toml::to_string(&self.settings) {
-            Ok(value) => value,
-            Err(error) => return Err(Error::other(error.to_string())),
-        };
-        fs::write(self.conf_file.clone(), conf_str)
     }
 
     /// convert color settings to ansi escape sequences

@@ -1,7 +1,7 @@
 use common::gen_config_load_function;
-use proc_macro2::{TokenStream}; // TODO: change to proc_macro2, to hopefully fix #assignments
-use syn::{parse_macro_input, spanned::Spanned, DeriveInput, Ident};
-use quote::{quote};
+use proc_macro2::TokenStream;
+use syn::{parse_macro_input, DeriveInput};
+use quote::quote;
 
 #[macro_use]
 mod common;
@@ -11,7 +11,7 @@ mod common;
 /// which parses a string and fills the fills recognised values into the struct
 /// - implements `write_default_config() -> Result<String>`
 /// which write a default configuration, in case the documentation is lacking
-#[proc_macro_derive(ConfigParser, attributes(nested_config))]
+#[proc_macro_derive(ConfigParser, attributes(color_config, nested_config, no_config))]
 pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
     let name = &ast.ident;
@@ -19,7 +19,7 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let fields = if let syn::Data::Struct(syn::DataStruct{ fields: syn::Fields::Named(syn::FieldsNamed{ ref named, .. }), .. }) = ast.data {
         named
     } else {
-        todo!("use `syn::Error` to return comprehensive error message");
+        panic!("the macro `ConfigParser` applies only to structs!");
     };
     let assignments = match gen_config_load_function(fields, &config_name) {
         Ok(value) => value,
@@ -29,21 +29,26 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     //let string = format!("{:#?}", ast);
     //_ = std::fs::write("test.txt", string);
 
-    let expanded_stream: TokenStream = quote::quote! {
+    let expanded_stream: TokenStream = quote! {
         impl #name {
+            /// tries to parse config from a string
             pub fn parse_from_string(&mut self, input: &String) -> std::io::Result<()> {
-                let #config_name : std::collections::HashMap<String, String> = Self::parse_config_file(input)?;
+                let mut #config_name : std::collections::HashMap<String, String> = Self::parse_config_file(input)?;
 
                 #assignments
 
+                if !#config_name.is_empty() {
+                    let leftovers = #config_name.keys().cloned().collect::<Vec<String>>();
+                    return Err(std::io::Error::other(format!("the following settings were not recognised: {:#?}", leftovers)));
+                }
                 Ok(())
             }
 
             /// **do not call**
             /// this function needs to be public for nested configs but is not intended
             /// to be called by the user
-            pub fn parse_from_map(&mut self, input: &std::collections::HashMap<String, String>) -> std::io::Result<()> {
-                let #config_name = input;
+            pub fn parse_from_map(&mut self, input: &mut std::collections::HashMap<String, String>) -> std::io::Result<()> {
+                let mut #config_name = input;
 
                 #assignments
 
