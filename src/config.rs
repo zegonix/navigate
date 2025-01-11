@@ -3,12 +3,12 @@
 //! handle the config file and bookmarks stored
 //! in said config file
 
-use crate::format::*;
 use dirs::config_dir;
 use std::fs;
 use std::io::{Error, Result};
 use std::path::PathBuf;
 use config_parser::ConfigParser;
+use config_parser::format::*;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -42,11 +42,17 @@ pub struct FormatSettings {
 
 #[derive(Debug, Clone, Default, ConfigParser)]
 pub struct StyleSettings {
+    #[color_config]
     pub stack_number: String,
+    #[color_config]
     pub stack_separator: String,
+    #[color_config]
     pub stack_path: String,
+    #[color_config]
     pub bookmarks_name: String,
+    #[color_config]
     pub bookmarks_seperator: String,
+    #[color_config]
     pub bookmarks_path: String,
 }
 

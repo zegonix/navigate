@@ -9,7 +9,7 @@ use std::io::{Error, Result};
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::make_padding_string;
+use config_parser::format::make_padding_string;
 
 use super::{apply_format, config::*};
 

@@ -1,0 +1,17 @@
+[workspace]
+members = [
+    "config-parser-common",
+    "config-parser-macro",
+]
+
+[package]
+name = "config-parser"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+
+[dependencies]
+config-parser-macro = { path = "config-parser-macro" }
+config-parser-common = { path = "config-parser-common" }
+

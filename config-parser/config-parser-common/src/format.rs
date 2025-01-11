@@ -2,11 +2,11 @@
 
 use std::io::{Result, Error};
 
-pub const ESC: &str = "\x1B";
-pub const PREFIX: &str = "\x1B[";
+pub const ESC: &str = "\x1b";
+pub const PREFIX: &str = "\x1b[";
 pub const RESET_ARG: &str = "0";
 pub const TERMINATION: &str = "m";
-pub const RESET_SEQ: &str = "\x1B[0m";
+pub const RESET_SEQ: &str = "\x1b[0m";
 pub const FG: ColorContext = ColorContext::Foreground;
 pub const BG: ColorContext = ColorContext::Background;
 
@@ -60,14 +60,12 @@ pub const COLORS: Colors = Colors {
     },
 };
 
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Styles {
     pub set: StyleCodes,
     pub reset: StyleCodes,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct StyleCodes {
     pub bold: &'static str,
@@ -80,14 +78,12 @@ pub struct StyleCodes {
     pub strikethrough: &'static str,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Colors {
     pub fg: ColorCodes,
     pub bg: ColorCodes,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ColorCodes {
     pub black: &'static str,
@@ -102,7 +98,6 @@ pub struct ColorCodes {
     pub default: &'static str,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum ColorContext {
     Foreground,
@@ -118,7 +113,7 @@ pub fn apply_format(input: &str, style: &str) -> String {
 /// `\x1B[<styles>;<foreground-color>;<background-color>m`
 /// all elements are optional, if none is supplied the function returns an error
 pub fn generate_style_sequence(
-    style: Option<Vec<&str>>,
+    style: Option<&str>,
     foreground: Option<&str>,
     background: Option<&str>,
 ) -> String {
@@ -128,9 +123,7 @@ pub fn generate_style_sequence(
     let mut sequence = PREFIX.to_owned();
     let mut arguments = Vec::<String>::new();
     if let Some(item) = style {
-        for entry in item {
-            arguments.push(entry.to_owned());
-        }
+        arguments.push(item.to_owned());
     }
     if let Some(item) = foreground {
         arguments.push(item.to_owned());
@@ -140,7 +133,6 @@ pub fn generate_style_sequence(
     }
 
     // panic if no arguments provided since this is a programming mistake
-    // which should not
     if arguments.is_empty() {
         panic!("no arguments provided to 'generate_style_sequence()'");
     }
@@ -152,6 +144,9 @@ pub fn generate_style_sequence(
 /// generates a 256 color sequence
 /// see `generate_rgb_sequence(..)` for details
 pub fn generate_256color_sequence(context: ColorContext, color: u8) -> String {
+    if color < 16 {
+        return "".to_owned();
+    }
     let mut sequence = PREFIX.to_owned();
     // choose context
     match context {
@@ -160,7 +155,7 @@ pub fn generate_256color_sequence(context: ColorContext, color: u8) -> String {
     };
     // make it a rgb sequence
     sequence.push_str(";5;");
-    sequence.push_str(&format!("{color}m"));
+    sequence.push_str(&format!("{color}{TERMINATION}"));
     sequence
 }
 
@@ -191,41 +186,73 @@ pub fn make_padding_string(len: usize) -> String {
 }
 
 /// convert color setting to ansi escape sequence
-pub fn parse_style(string: String) -> Result<String> {
-    // check for numbered color
-    if let Ok(sequence) = parse_numbered_color(&string) {
-        return Ok(sequence);
+/// input format is a quoted string (either double or single)
+/// the style can be a combination of **one** color and
+/// one or more style options (bold, italic, underlined, strikethrough)
+pub fn parse_style(arg: String) -> Result<String> {
+    let mut colors: Vec<String> = Vec::<String>::new();
+    let mut styles: Vec<String> = Vec::<String>::new();
+
+    // separate style options
+    let mut tokens: Vec<String> = arg.split([' ', ',', '\"', '\'']).map(|entry| entry.trim().to_lowercase()).collect();
+    tokens.retain(|entry| !entry.is_empty());
+
+    // parse options
+    for option in tokens {
+        // parse numbered colors
+        if let Ok(sequence) = parse_numbered_color(&option) {
+            colors.push(sequence);
+            continue;
+        }
+
+        // parse rgb colors
+        if let Ok(sequence) = parse_rgb_color(&option) {
+            colors.push(sequence);
+            continue;
+        }
+
+        // parse styles and named colors
+        match option.as_str() {
+            // styles
+            "bold" => styles.push(generate_style_sequence(Some(STYLES.set.bold), None, None)),
+            "dim" => styles.push(generate_style_sequence(Some(STYLES.set.dim), None, None)),
+            "italic" => styles.push(generate_style_sequence(Some(STYLES.set.italic), None, None)),
+            "underlined" => styles.push(generate_style_sequence(Some(STYLES.set.underline), None, None)),
+            "blink" => styles.push(generate_style_sequence(Some(STYLES.set.blink), None, None)),
+            "reverse" => styles.push(generate_style_sequence(Some(STYLES.set.reverse), None, None)),
+            "invisible" => styles.push(generate_style_sequence(Some(STYLES.set.invisible), None, None)),
+            "strikethrough" => styles.push(generate_style_sequence(Some(STYLES.set.strikethrough), None, None)),
+            // named colors
+            "black" => colors.push(generate_style_sequence(None, Some(COLORS.fg.black), None)),
+            "red" => colors.push(generate_style_sequence(None, Some(COLORS.fg.red), None)),
+            "green" => colors.push(generate_style_sequence(None, Some(COLORS.fg.green), None)),
+            "yellow" => colors.push(generate_style_sequence(None, Some(COLORS.fg.yellow), None)),
+            "blue" => colors.push(generate_style_sequence(None, Some(COLORS.fg.blue), None)),
+            "magenta" => colors.push(generate_style_sequence(None, Some(COLORS.fg.magenta), None)),
+            "cyan" => colors.push(generate_style_sequence(None, Some(COLORS.fg.cyan), None)),
+            "white" => colors.push(generate_style_sequence(None, Some(COLORS.fg.white), None)),
+            "default" => colors.push(generate_style_sequence(None, Some(COLORS.fg.default), None)),
+            _ => return Err(Error::other(format!("-- could not parse style token `{}` in config file", option))),
+        };
+
+    };
+
+    if colors.len() > 1 {
+        return Err(Error::other(format!("-- too many colors found in setting <{}>", arg)));
     }
-    // check for rgb color
-    if let Ok(sequence) = parse_rgb_color(&string) {
-        return Ok(sequence);
+    if !colors.is_empty() {
+        styles.push(colors.pop().unwrap());
     }
-    // check for named color
-    match string.to_ascii_lowercase().as_str() {
-        "black" => Ok(generate_style_sequence(None, Some(COLORS.fg.black), None)),
-        "red" => Ok(generate_style_sequence(None, Some(COLORS.fg.red), None)),
-        "green" => Ok(generate_style_sequence(None, Some(COLORS.fg.green), None)),
-        "yellow" => Ok(generate_style_sequence(None, Some(COLORS.fg.yellow), None)),
-        "blue" => Ok(generate_style_sequence(None, Some(COLORS.fg.blue), None)),
-        "magenta" => Ok(generate_style_sequence(None, Some(COLORS.fg.magenta), None)),
-        "cyan" => Ok(generate_style_sequence(None, Some(COLORS.fg.cyan), None)),
-        "white" => Ok(generate_style_sequence(None, Some(COLORS.fg.white), None)),
-        "default" => Ok(generate_style_sequence(None, Some(COLORS.fg.default), None)),
-        _ => Err(Error::other(format!(
-            "-- could not parse color `{}` in config file",
-            string
-        ))),
-    }
+    Ok(styles.join(""))
 }
 
 fn parse_numbered_color(string: &String) -> Result<String> {
     // check for numbered color
     if let Ok(number) = string.parse::<u8>() {
-        if number >= 16 {
         return Ok(generate_256color_sequence(
             ColorContext::Foreground,
             number,
-        ));}
+        ));
     }
     Err(Error::other(format!("no numbered color found in '{}'", string)))
 }
@@ -233,7 +260,6 @@ fn parse_numbered_color(string: &String) -> Result<String> {
 fn parse_rgb_color(string: &String) -> Result<String> {
     // check for rgb color
     if string.as_bytes()[0] == b'#' && string.len() == 7 {
-        // match u8::from_str_radix(&color, 16) {
         let red = match u8::from_str_radix(&string[1..=2], 16) {
             Ok(value) => value,
             Err(_) => {

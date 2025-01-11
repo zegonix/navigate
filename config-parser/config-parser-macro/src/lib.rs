@@ -1,10 +1,7 @@
-use common::gen_config_load_function;
+use config_parser_common::common::gen_config_load_function;
 use proc_macro2::TokenStream;
 use syn::{parse_macro_input, DeriveInput};
 use quote::quote;
-
-#[macro_use]
-mod common;
 
 /// **for structs only**
 /// - implements `parse_config(&mut self, input: &String) -> Result<()>`
@@ -26,8 +23,10 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         Err(_) => panic!("loading config failed"),
     };
 
-    //let string = format!("{:#?}", ast);
-    //_ = std::fs::write("test.txt", string);
+    if name.to_string() == "Settings" {
+        let string = format!("{:#?}", ast);
+        _ = std::fs::write("test.txt", string);
+    }
 
     let expanded_stream: TokenStream = quote! {
         impl #name {
@@ -97,6 +96,5 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         }
     }.into();
     expanded_stream.into()
-    //TokenStream::new()
 }
 

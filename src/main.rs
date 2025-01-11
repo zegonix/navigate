@@ -1,5 +1,4 @@
 mod arguments;
-mod format;
 mod config;
 mod bookmarks;
 mod stack;
@@ -9,7 +8,7 @@ use arguments::*;
 use clap::Parser;
 use config::*;
 use bookmarks::*;
-use format::*;
+use config_parser::format::*;
 use stack::Stack;
 use std::env::{current_dir, var};
 use std::io::{Error, Result};
@@ -18,7 +17,7 @@ use std::str::FromStr;
 
 fn main() -> Result<()> {
     let style_error =
-        generate_style_sequence(Some(vec![STYLES.set.bold]), Some(COLORS.fg.red), None);
+        generate_style_sequence(Some(STYLES.set.bold), Some(COLORS.fg.red), None);
     let args = match Arguments::try_parse() {
         Ok(a) => a,
         Err(e) => {
