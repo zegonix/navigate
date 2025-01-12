@@ -8,7 +8,7 @@ use arguments::*;
 use clap::Parser;
 use config::*;
 use bookmarks::*;
-use config_parser::format::*;
+use config_parser::*;
 use stack::Stack;
 use std::env::{current_dir, var};
 use std::io::{Error, Result};
@@ -25,7 +25,7 @@ fn main() -> Result<()> {
             return Ok(());
         }
     };
-    let config = match Config::new() {
+    let config = match Config::new(true) {
         Ok(value) => value,
         Err(error) => {
             print!("echo '{}{}{}' && false", style_error, error, RESET_SEQ);

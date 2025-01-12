@@ -9,9 +9,8 @@ use std::io::{Error, Result};
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use config_parser::format::make_padding_string;
-
-use super::{apply_format, config::*};
+use super::config::*;
+use config_parser::{make_padding_string, apply_format};
 
 #[derive(Debug, Clone)]
 pub struct Bookmarks {
@@ -132,12 +131,12 @@ impl Bookmarks {
             };
             for (mark, path) in &self.bookmarks {
                 let padding = make_padding_string(max_name_len - mark.len());
-                let name = apply_format(mark, &config.styles.bookmarks_name);
+                let name = apply_format(mark, &config.styles.bookmarks_name_style);
                 let separator = apply_format(
                     &config.format.bookmarks_separator,
-                    &config.styles.bookmarks_seperator,
+                    &config.styles.bookmarks_seperator_style,
                 );
-                let path = apply_format(path.to_str().unwrap(), &config.styles.bookmarks_path);
+                let path = apply_format(path.to_str().unwrap(), &config.styles.bookmarks_path_style);
                 if config.format.align_separators {
                     buffer.push_str(&format!("{}{}{}{}\n", name, padding, separator, path));
                 } else {

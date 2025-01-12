@@ -189,7 +189,7 @@ pub fn make_padding_string(len: usize) -> String {
 /// input format is a quoted string (either double or single)
 /// the style can be a combination of **one** color and
 /// one or more style options (bold, italic, underlined, strikethrough)
-pub fn parse_style(arg: String) -> Result<String> {
+pub fn parse_style(arg: &String) -> Result<String> {
     let mut colors: Vec<String> = Vec::<String>::new();
     let mut styles: Vec<String> = Vec::<String>::new();
 

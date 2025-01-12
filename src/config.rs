@@ -7,8 +7,9 @@ use dirs::config_dir;
 use std::fs;
 use std::io::{Error, Result};
 use std::path::PathBuf;
-use config_parser::ConfigParser;
-use config_parser::format::*;
+use config_parser::*;
+
+use crate::debug::debug_print;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -42,25 +43,25 @@ pub struct FormatSettings {
 
 #[derive(Debug, Clone, Default, ConfigParser)]
 pub struct StyleSettings {
-    #[color_config]
-    pub stack_number: String,
-    #[color_config]
-    pub stack_separator: String,
-    #[color_config]
-    pub stack_path: String,
-    #[color_config]
-    pub bookmarks_name: String,
-    #[color_config]
-    pub bookmarks_seperator: String,
-    #[color_config]
-    pub bookmarks_path: String,
+    #[style_config]
+    pub stack_number_style: String,
+    #[style_config]
+    pub stack_separator_style: String,
+    #[style_config]
+    pub stack_path_style: String,
+    #[style_config]
+    pub bookmarks_name_style: String,
+    #[style_config]
+    pub bookmarks_seperator_style: String,
+    #[style_config]
+    pub bookmarks_path_style: String,
 }
 
 impl Config {
     const CONFIG_FILE_NAME: &str = "navigate.conf";
 
     /// generates and populates a new instance of Config
-    pub fn new() -> Result<Self> {
+    pub fn new(styles_as_ansi_sequences: bool) -> Result<Self> {
         let mut config = Config {
             conf_file: PathBuf::new(),
             settings: Settings {
@@ -75,12 +76,12 @@ impl Config {
                     align_separators: false,
                 },
                 styles: StyleSettings {
-                    stack_number: String::new(),
-                    stack_separator: String::new(),
-                    stack_path: String::new(),
-                    bookmarks_name: String::new(),
-                    bookmarks_seperator: String::new(),
-                    bookmarks_path: String::new(),
+                    stack_number_style: String::new(),
+                    stack_separator_style: String::new(),
+                    stack_path_style: String::new(),
+                    bookmarks_name_style: String::new(),
+                    bookmarks_seperator_style: String::new(),
+                    bookmarks_path_style: String::new(),
                 },
             },
         };
@@ -113,6 +114,10 @@ impl Config {
         //config.set_default_settings()?;
         //config.parse_color_settings()?;
 
+        if styles_as_ansi_sequences {
+            config.settings.to_ansi_sequences()?;
+        }
+
         Ok(config)
     }
 
@@ -140,40 +145,25 @@ impl Config {
             self.settings.format.bookmarks_separator = default_separator.clone();
         }
 
-        if self.settings.styles.stack_number.is_empty() {
-            self.settings.styles.stack_number = default_number_color.clone();
+        if self.settings.styles.stack_number_style.is_empty() {
+            self.settings.styles.stack_number_style = default_number_color.clone();
         }
-        if self.settings.styles.stack_separator.is_empty() {
-            self.settings.styles.stack_separator = default_separator_color.clone();
+        if self.settings.styles.stack_separator_style.is_empty() {
+            self.settings.styles.stack_separator_style = default_separator_color.clone();
         }
-        if self.settings.styles.stack_path.is_empty() {
-            self.settings.styles.stack_path = default_path_color.clone();
+        if self.settings.styles.stack_path_style.is_empty() {
+            self.settings.styles.stack_path_style = default_path_color.clone();
         }
-        if self.settings.styles.bookmarks_name.is_empty() {
-            self.settings.styles.bookmarks_name = default_number_color.clone();
+        if self.settings.styles.bookmarks_name_style.is_empty() {
+            self.settings.styles.bookmarks_name_style = default_number_color.clone();
         }
-        if self.settings.styles.bookmarks_seperator.is_empty() {
-            self.settings.styles.bookmarks_seperator = default_separator_color.clone();
+        if self.settings.styles.bookmarks_seperator_style.is_empty() {
+            self.settings.styles.bookmarks_seperator_style = default_separator_color.clone();
         }
-        if self.settings.styles.bookmarks_path.is_empty() {
-            self.settings.styles.bookmarks_path = default_path_color.clone();
+        if self.settings.styles.bookmarks_path_style.is_empty() {
+            self.settings.styles.bookmarks_path_style = default_path_color.clone();
         }
 
-        Ok(())
-    }
-
-    /// convert color settings to ansi escape sequences
-    pub fn parse_color_settings(&mut self) -> Result<()> {
-        self.settings.styles.stack_number = parse_style(self.settings.styles.stack_number.clone())?;
-        self.settings.styles.stack_separator =
-            parse_style(self.settings.styles.stack_separator.clone())?;
-        self.settings.styles.stack_path = parse_style(self.settings.styles.stack_path.clone())?;
-        self.settings.styles.bookmarks_name =
-            parse_style(self.settings.styles.bookmarks_name.clone())?;
-        self.settings.styles.bookmarks_seperator =
-            parse_style(self.settings.styles.bookmarks_seperator.clone())?;
-        self.settings.styles.bookmarks_path =
-            parse_style(self.settings.styles.bookmarks_path.clone())?;
         Ok(())
     }
 }

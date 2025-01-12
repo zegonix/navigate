@@ -41,12 +41,12 @@ impl Stack {
             let max_num_len = self.stack.len().to_string().len();
             for (n, item) in self.stack.iter().rev().enumerate() {
                 let padding = make_padding_string(max_num_len - n.to_string().len());
-                let number = apply_format(&n.to_string(), &config.styles.stack_number);
+                let number = apply_format(&n.to_string(), &config.styles.stack_number_style);
                 let separator = apply_format(
                     &config.format.stack_separator,
-                    &config.styles.stack_separator,
+                    &config.styles.stack_separator_style,
                 );
-                let path = apply_format(item.to_str().unwrap(), &config.styles.stack_path);
+                let path = apply_format(item.to_str().unwrap(), &config.styles.stack_path_style);
                 if config.format.align_separators {
                     buffer.push_str(&format!("{}{}{}{}\n", number, padding, separator, path));
                 } else {
