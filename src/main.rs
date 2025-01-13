@@ -68,7 +68,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn handle_push(args: &PushArgs, _config: &Config, stack: &mut Stack) -> Result<()> {
+fn handle_push(args: &PushArgs, config: &Config, stack: &mut Stack) -> Result<()> {
     let path = match args.path.clone() {
         Some(value) => value,
         None => {
@@ -82,11 +82,11 @@ fn handle_push(args: &PushArgs, _config: &Config, stack: &mut Stack) -> Result<(
             }
         }
     };
-    push_path(&path, stack)?;
+    push_path(&path, stack, config)?;
     Ok(())
 }
 
-fn handle_pop(args: &PopArgs, _config: &Config, stack: &mut Stack) -> Result<()> {
+fn handle_pop(args: &PopArgs, config: &Config, stack: &mut Stack) -> Result<()> {
     let mut num : Option<usize> = None;
     if let Some(a) = &args.action {
         match a {
@@ -96,6 +96,9 @@ fn handle_pop(args: &PopArgs, _config: &Config, stack: &mut Stack) -> Result<()>
         num = Some(*n);
     }
     let path = stack.pop_entry(num)?;
+    if config.settings.general.show_stack_on_push {
+        print!("echo '{}' && ", stack.to_formatted_string(&config.settings)?);
+    }
     println!(
         "cd -- {}",
         match path.to_str() {
@@ -128,7 +131,7 @@ fn handle_bookmark(args: &BookmarkArgs, config: &Config, bookmarks: &mut Bookmar
         };
     } else if args.name.is_some() { // handle `change to bookmark`
         let path = bookmarks.get_path_by_name(args.name.as_ref().unwrap())?;
-        push_path(&path, stack)?;
+        push_path(&path, stack, config)?;
     } else {
         return Err(Error::other(
             "-- provide either a `subcommand` or a `bookmark name`",
@@ -169,13 +172,16 @@ fn remove_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Boo
 }
 
 /// push path to stack and print command to navigate to provided path
-fn push_path(path: &Path, stack: &mut Stack) -> Result<()> {
+fn push_path(path: &Path, stack: &mut Stack, config: &Config) -> Result<()> {
     if !path.is_dir() {
         return Err(Error::other("-- invalid path argument"));
     }
     let current_path = current_dir()?;
     let next_path = path.canonicalize()?;
     stack.push_entry(&current_path)?;
+    if config.settings.general.show_stack_on_push {
+        print!("echo '{}' && ", stack.to_formatted_string(&config.settings)?);
+    }
     println!(
         "cd -- {}",
         match next_path.to_str() {

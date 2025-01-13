@@ -29,7 +29,7 @@ pub struct Settings {
 pub struct GeneralSettings {
     pub show_stack_on_push: bool,
     pub show_stack_on_pop: bool,
-    pub show_stack_on_bookmark: bool,
+    pub show_books_on_bookmark: bool,
 }
 
 #[derive(Debug, Clone, Default, ConfigParser)]
@@ -66,7 +66,7 @@ impl Config {
                 general: GeneralSettings {
                     show_stack_on_push: false,
                     show_stack_on_pop: false,
-                    show_stack_on_bookmark: false,
+                    show_books_on_bookmark: false,
                 },
                 format: FormatSettings {
                     bookmarks_separator: String::new(),
