@@ -151,11 +151,15 @@ fn list_bookmarks(config: &Config, bookmarks: &mut Bookmarks) -> Result<()> {
 }
 
 fn add_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookmarks) -> Result<()> {
-    if args.path.is_none() {
-        return Err(Error::other("-- missing path argument"));
-    } else {
-        bookmarks.add_bookmark(&args.name, &args.path.clone().unwrap())?;
-    }
+    let mut path = match args.path.clone() {
+        Some(value) => value,
+        None => return Err(Error::other("-- missing path argument")),
+    };
+    path = match path.canonicalize() {
+        Ok(value) => value,
+        Err(error) => return Err(Error::other(error.to_string())),
+    };
+    bookmarks.add_bookmark(&args.name, &path)?;
     Ok(())
 }
 
