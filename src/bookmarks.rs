@@ -1,7 +1,7 @@
 //! handle the config file and bookmarks stored
 //! in said config file
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fs;
 use std::fs::File;
 use std::io::{Error, Result};
@@ -15,7 +15,7 @@ use config_parser::{make_padding_string, apply_format};
 #[derive(Debug, Clone)]
 pub struct Bookmarks {
     conf_dir: PathBuf,
-    bookmarks: HashMap<String, PathBuf>,
+    bookmarks: BTreeMap<String, PathBuf>,
 }
 
 impl Bookmarks {
@@ -25,7 +25,7 @@ impl Bookmarks {
     pub fn new() -> Result<Self> {
         let mut bookmarks = Bookmarks {
             conf_dir: PathBuf::new(),
-            bookmarks: HashMap::<String, PathBuf>::new(),
+            bookmarks: BTreeMap::<String, PathBuf>::new(),
         };
         // get home directory path
         bookmarks.conf_dir = match config_dir() {
@@ -56,7 +56,7 @@ impl Bookmarks {
         }
 
         let bookmarks = fs::read_to_string(bookmark_file)?;
-        let bookmarks = bookmarks.split("\n");
+        let bookmarks = bookmarks.lines();
         for entry in bookmarks {
             let tokens: Vec<&str> = entry.split("=").collect();
             if tokens.len() != 2 {
