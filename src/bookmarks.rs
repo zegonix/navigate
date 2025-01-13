@@ -2,12 +2,12 @@
 //! in said config file
 
 use std::collections::HashMap;
-use std::env::var;
 use std::fs;
 use std::fs::File;
 use std::io::{Error, Result};
 use std::path::PathBuf;
 use std::str::FromStr;
+use dirs::config_dir;
 
 use super::config::*;
 use config_parser::{make_padding_string, apply_format};
@@ -28,17 +28,12 @@ impl Bookmarks {
             bookmarks: HashMap::<String, PathBuf>::new(),
         };
         // get home directory path
-        let home_dir = match var("HOME") {
-            Ok(value) => value,
-            Err(error) => return Err(Error::other(error.to_string())),
-        };
-        // create PathBuf object from home dir path
-        bookmarks.conf_dir = match PathBuf::from_str(&home_dir) {
-            Ok(value) => value,
-            Err(error) => return Err(Error::other(error.to_string())),
+        bookmarks.conf_dir = match config_dir() {
+            Some(value) => value,
+            None => return Err(Error::other("-- failed to find configuration directory")),
         };
         // expand home directory path to get configuration directory path
-        bookmarks.conf_dir.push(".config/navigate/");
+        bookmarks.conf_dir.push("navigate/");
         bookmarks.build_bookmarks()?;
 
         Ok(bookmarks)

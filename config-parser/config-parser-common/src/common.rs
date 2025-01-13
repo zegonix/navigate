@@ -27,10 +27,10 @@ pub fn parse_config_file(input: &String) -> std::io::Result<std::collections::Ha
                 // println!("error in line'", line);
                 continue;
             }
-            //// clean up value: remove quotes.. TODO:
-            //let mut options: Vec<&str> = tokens[1].split(['\'', '\"']).collect::<Vec<&str>>().join(',');
+            // clean up value: remove quotes.. TODO:
+            let option = tokens[1].replace(&['\"', '\''][..], "");
 
-            config.insert(tokens[0].to_string(), tokens[1].to_string());
+            config.insert(tokens[0].to_string(), option);
         }
 
     }

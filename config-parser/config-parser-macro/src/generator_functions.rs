@@ -115,6 +115,7 @@ pub fn gen_config_assignments(fields: &Punctuated<Field, Comma>, config_map_name
                     Ok(parsed) => {
                         parsed
                     },
+                    // TODO: implement warnings about errors here
                     Err(_) => {
                         self.#name.clone()
                     },

@@ -9,8 +9,6 @@ use std::io::{Error, Result};
 use std::path::PathBuf;
 use config_parser::*;
 
-use crate::debug::debug_print;
-
 #[derive(Debug, Clone)]
 pub struct Config {
     conf_file: PathBuf,
