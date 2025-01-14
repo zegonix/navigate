@@ -3,6 +3,7 @@ mod config;
 mod bookmarks;
 mod stack;
 mod output;
+mod util;
 mod debug;
 
 use arguments::*;
@@ -173,7 +174,7 @@ fn add_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookma
 
 fn remove_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookmarks, output: &mut Output) -> Result<()> {
     bookmarks.remove_bookmark(&args.name)?;
-    
+
     if config.general.show_books_on_bookmark {
         output.push_info(&bookmarks.to_formatted_string(config)?);
     } else {

@@ -9,7 +9,7 @@ use std::str::FromStr;
 use dirs::config_dir;
 
 use super::config::*;
-use config_parser::{make_padding_string, apply_format};
+use config_parser::{apply_format, make_padding_string, RESET_ARG, RESET_SEQ};
 
 #[derive(Debug, Clone)]
 pub struct Bookmarks {
@@ -111,7 +111,8 @@ impl Bookmarks {
                     &config.format.bookmarks_separator,
                     &config.styles.bookmarks_seperator_style,
                 );
-                let path = apply_format(path.to_str().unwrap(), &config.styles.bookmarks_path_style);
+                let mut path = apply_format(path.to_str().unwrap(), &config.styles.bookmarks_path_style);
+                path = path.replace('/', &format!("{}/{}", config.styles.bookmarks_punct_style, RESET_SEQ));
                 if config.format.align_separators {
                     buffer.push_str(&format!("{}{}{}{}\n", name, padding, separator, path));
                 } else {

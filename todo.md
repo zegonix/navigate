@@ -10,8 +10,8 @@
   - [ ] dedup stack option
   - [x] parse config file
   - [ ] apply config -- partially more done than before :)
-    - [ ] `show-bookmarks-on-book`
+    - [x] `show-bookmarks-on-book`
   - [x] setting for separator string when displaying stack/bookmarks
-  - [ ] color option for punctuation (mostly '/')
+  - [x] color option for punctuation (mostly '/')
 - [x] bookmarks
   - [ ] do not resolve links in bookmarks

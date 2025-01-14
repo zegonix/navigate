@@ -45,11 +45,15 @@ pub struct StyleSettings {
     #[style_config]
     pub stack_path_style: String,
     #[style_config]
+    pub stack_punct_style: String,
+    #[style_config]
     pub bookmarks_name_style: String,
     #[style_config]
     pub bookmarks_seperator_style: String,
     #[style_config]
     pub bookmarks_path_style: String,
+    #[style_config]
+    pub bookmarks_punct_style: String,
 }
 
 impl Config {
@@ -74,9 +78,11 @@ impl Config {
                 stack_number_style: String::new(),
                 stack_separator_style: String::new(),
                 stack_path_style: String::new(),
+                stack_punct_style: String::new(),
                 bookmarks_name_style: String::new(),
                 bookmarks_seperator_style: String::new(),
                 bookmarks_path_style: String::new(),
+                bookmarks_punct_style: String::new(),
             },
         };
         // get configuration directory

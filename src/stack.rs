@@ -5,11 +5,11 @@ use std::fs::File;
 use std::io::{Error, Result};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use config_parser::{RESET_SEQ, STYLES};
 use sysinfo::{Pid, System};
 
 use crate::make_padding_string;
-
-use super::{apply_format, config::*, output::Output};
+use super::{apply_format, config::*};
 
 #[derive(Debug, Clone)]
 pub struct Stack {
@@ -46,7 +46,8 @@ impl Stack {
                     &config.format.stack_separator,
                     &config.styles.stack_separator_style,
                 );
-                let path = apply_format(item.to_str().unwrap(), &config.styles.stack_path_style);
+                let mut path = apply_format(item.to_str().unwrap(), &config.styles.stack_path_style);
+                path = path.replace('/', &format!("{}/{}", config.styles.stack_punct_style, RESET_SEQ));
                 if config.format.align_separators {
                     buffer.push_str(&format!("{}{}{}{}\n", number, padding, separator, path));
                 } else {
@@ -67,6 +68,8 @@ impl Stack {
     /// returns updated stack
     pub fn push_entry(&mut self, path: &Path) -> Result<&Vec<PathBuf>> {
         let abs_path = path.canonicalize()?;
+        //let abs_path = super::util::to_lexical_absolute(path.to_path_buf())?; TODO: fix paths and
+        //stuff
         self.stack.push(abs_path);
         self.write_stack_file()?;
         Ok(&self.stack)
