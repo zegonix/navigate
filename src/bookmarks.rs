@@ -1,5 +1,4 @@
-//! handle the config file and bookmarks stored
-//! in said config file
+//! implements a struct and methods for bookmarks
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -14,50 +13,32 @@ use config_parser::{make_padding_string, apply_format};
 
 #[derive(Debug, Clone)]
 pub struct Bookmarks {
-    conf_dir: PathBuf,
     bookmarks: BTreeMap<String, PathBuf>,
 }
 
 impl Bookmarks {
-    const BOOKMARK_FILE_NAME: &str = "bookmarks.conf";
+    const BOOKMARK_FILE_PATH: &str = "navigate/bookmarks.conf";
 
     /// generates and populates a new instance of Config
     pub fn new() -> Result<Self> {
         let mut bookmarks = Bookmarks {
-            conf_dir: PathBuf::new(),
             bookmarks: BTreeMap::<String, PathBuf>::new(),
         };
         // get home directory path
-        bookmarks.conf_dir = match config_dir() {
+        let mut bookmark_file = match config_dir() {
             Some(value) => value,
             None => return Err(Error::other("-- failed to find configuration directory")),
         };
         // expand home directory path to get configuration directory path
-        bookmarks.conf_dir.push("navigate/");
-        bookmarks.build_bookmarks()?;
-
-        Ok(bookmarks)
-    }
-
-    /// reads and parses the bookmarks file
-    fn build_bookmarks(&mut self) -> Result<()> {
-        // check if configuration directory exists, if not create it
-        if !self.conf_dir.is_dir() {
-            fs::create_dir(self.conf_dir.clone())?;
-        }
-
-        let mut bookmark_file = self.conf_dir.clone();
-
-        bookmark_file.push(Self::BOOKMARK_FILE_NAME);
+        bookmark_file.push(Self::BOOKMARK_FILE_PATH);
 
         // check if bookmarks file exists, if not create it
         if !bookmark_file.is_file() {
             _ = File::create(bookmark_file.clone())?;
         }
 
-        let bookmarks = fs::read_to_string(bookmark_file)?;
-        let bookmarks = bookmarks.lines();
-        for entry in bookmarks {
+        let bookmarks_str = fs::read_to_string(bookmark_file)?;
+        for entry in bookmarks_str.lines() {
             let tokens: Vec<&str> = entry.split("=").collect();
             if tokens.len() != 2 {
                 continue;
@@ -70,10 +51,9 @@ impl Bookmarks {
             if !path.is_dir() {
                 continue;
             }
-            self.bookmarks.insert(key, path);
+            bookmarks.bookmarks.insert(key, path);
         }
-
-        Ok(())
+        Ok(bookmarks)
     }
 
     /// returns path of bookmark if it exists
@@ -114,7 +94,7 @@ impl Bookmarks {
     }
 
     /// formats and prints bookmarks to string
-    pub fn to_formatted_string(&self, config: &Settings) -> Result<String> {
+    pub fn to_formatted_string(&self, config: &Config) -> Result<String> {
         let mut buffer = String::new();
 
         if self.bookmarks.is_empty() {
@@ -149,8 +129,13 @@ impl Bookmarks {
             file_content.push_str(&format!("{}={}\n", mark, path.to_str().unwrap()));
         }
 
-        let mut path = self.conf_dir.clone();
-        path.push(Self::BOOKMARK_FILE_NAME);
+        let path = match config_dir() {
+            Some(mut value) => {
+                value.push(Self::BOOKMARK_FILE_PATH);
+                value
+            }
+            None => return Err(Error::other("-- failed to find configuration directory")),
+        };
 
         fs::write(path, file_content)?;
         Ok(())

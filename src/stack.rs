@@ -9,7 +9,7 @@ use sysinfo::{Pid, System};
 
 use crate::make_padding_string;
 
-use super::{apply_format, config::*};
+use super::{apply_format, config::*, output::Output};
 
 #[derive(Debug, Clone)]
 pub struct Stack {
@@ -31,7 +31,7 @@ impl Stack {
     }
 
     /// formats and prints stack to string
-    pub fn to_formatted_string(&self, config: &Settings) -> Result<String> {
+    pub fn to_formatted_string(&self, config: &Config) -> Result<String> {
         let mut buffer: String = "".to_string();
 
         if self.stack.is_empty() {
@@ -58,9 +58,8 @@ impl Stack {
     }
 
     /// clear stack by deleting the associated stack file
-    pub fn clear_stack(&mut self, config: &Settings) -> Result<()> {
+    pub fn clear_stack(&mut self) -> Result<()> {
         fs::remove_file(self.path.clone())?;
-        print!("echo 'stack cleared successfully.'");
         Ok(())
     }
 

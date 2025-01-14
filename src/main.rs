@@ -2,6 +2,7 @@ mod arguments;
 mod config;
 mod bookmarks;
 mod stack;
+mod output;
 mod debug;
 
 use arguments::*;
@@ -9,6 +10,7 @@ use clap::Parser;
 use config::*;
 use bookmarks::*;
 use config_parser::*;
+use output::Output;
 use stack::Stack;
 use std::env::{current_dir, var};
 use std::io::{Error, Result};
@@ -16,59 +18,58 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 fn main() -> Result<()> {
-    let style_error =
-        generate_style_sequence(Some(STYLES.set.bold), Some(COLORS.fg.red), None);
-    let args = match Arguments::try_parse() {
-        Ok(a) => a,
-        Err(e) => {
-            print!("echo '{}{}{}' && false", style_error, e, RESET_SEQ);
-            return Ok(());
-        }
-    };
+    let mut output = Output::new();
     let config = match Config::new(true) {
         Ok(value) => value,
         Err(error) => {
-            print!("echo '{}{}{}' && false", style_error, error, RESET_SEQ);
+            // config object is not ready at this point so the style
+            // has to be created by hand
+            print!("echo '{}{}{}' && false", generate_style_sequence(None, Some(COLORS.fg.red), None), error, RESET_SEQ);
+            return Ok(())
+        }
+    };
+    let args = match Arguments::try_parse() {
+        Ok(a) => a,
+        Err(error) => {
+            output.push_error(&error.to_string());
+            output.print_output(&config);
             return Ok(());
         }
     };
     let mut bookmarks = match Bookmarks::new() {
         Ok(value) => value,
         Err(error) => {
-            print!("echo '{}{}{}' && false", style_error, error, RESET_SEQ);
+            output.push_error(&error.to_string());
+            output.print_output(&config);
             return Ok(());
         }
     };
     let mut stack = match Stack::new(args.pid) {
         Ok(stack) => stack,
         Err(_) => {
-            print!(
-                "echo '{}-- failed to build stack{}' && false",
-                style_error, RESET_SEQ
-            );
+            output.push_error(&"-- failed to build stack".to_string());
             return Err(Error::other(""));
         }
     };
     let res = match args.action {
-        Action::push(push_args) => handle_push(&push_args, &config, &mut stack),
-        Action::pop(pop_args) => handle_pop(&pop_args, &config, &mut stack),
-        Action::stack(stack_args) => handle_stack(&stack_args, &config, &mut stack),
-        Action::bookmark(bookmark_args) => handle_bookmark(&bookmark_args, &config, &mut bookmarks, &mut stack),
-        // Action::config(config_args) => handle_config(&config_args, &config),
+        Action::push(push_args) => handle_push(&push_args, &config, &mut stack, &mut output),
+        Action::pop(pop_args) => handle_pop(&pop_args, &config, &mut stack, &mut output),
+        Action::stack(stack_args) => handle_stack(&stack_args, &config, &mut stack, &mut output),
+        Action::bookmark(bookmark_args) => handle_bookmark(&bookmark_args, &config, &mut bookmarks, &mut stack, &mut output),
     };
 
     if res.is_err() {
-        print!(
-            "echo '{}{}{}' && false",
-            style_error,
-            res.unwrap_err(),
-            RESET_SEQ,
-        );
+        output.push_error(&res.unwrap_err().to_string());
+        output.push_command(&"false".to_owned());
     }
+
+    // print output and command
+    output.print_output(&config);
+
     Ok(())
 }
 
-fn handle_push(args: &PushArgs, config: &Config, stack: &mut Stack) -> Result<()> {
+fn handle_push(args: &PushArgs, config: &Config, stack: &mut Stack, output: &mut Output) -> Result<()> {
     let path = match args.path.clone() {
         Some(value) => value,
         None => {
@@ -82,11 +83,11 @@ fn handle_push(args: &PushArgs, config: &Config, stack: &mut Stack) -> Result<()
             }
         }
     };
-    push_path(&path, stack, config)?;
+    push_path(&path, stack, config, output)?;
     Ok(())
 }
 
-fn handle_pop(args: &PopArgs, config: &Config, stack: &mut Stack) -> Result<()> {
+fn handle_pop(args: &PopArgs, config: &Config, stack: &mut Stack, output: &mut Output) -> Result<()> {
     let mut num : Option<usize> = None;
     if let Some(a) = &args.action {
         match a {
@@ -96,46 +97,44 @@ fn handle_pop(args: &PopArgs, config: &Config, stack: &mut Stack) -> Result<()> 
         num = Some(*n);
     }
     let path = stack.pop_entry(num)?;
-    if config.settings.general.show_stack_on_push {
-        print!("echo '{}' && ", stack.to_formatted_string(&config.settings)?);
+    if config.general.show_stack_on_push {
+        output.push_info(&stack.to_formatted_string(config)?);
     }
-    println!(
-        "cd -- {}",
-        match path.to_str() {
-            Some(value) => value,
-            None => return Err(Error::other("-- failed to print popped path as string")),
-        }
-    );
+    output.push_command(&format!("cd -- {}", match path.to_str() {
+        Some(value) => value,
+        None => return Err(Error::other("-- failed to print popped path as string")),
+    }));
     Ok(())
 }
 
-fn handle_stack(args: &StackArgs, config: &Config, stack: &mut Stack) -> Result<()> {
+fn handle_stack(args: &StackArgs, config: &Config, stack: &mut Stack, output: &mut Output) -> Result<()> {
     if args.stack_action.is_some() {
         match args.stack_action.clone().unwrap() {
-            StackAction::clear(_) => return stack.clear_stack(&config.settings),
+            StackAction::clear(_) => {
+                stack.clear_stack()?;
+                output.push_info(&"stack cleared.".to_owned());
+                return Ok(());
+            }
         }
     }
     // retrieve stack
-    let output: String = stack.to_formatted_string(&config.settings)?;
-    print!("echo '{}'", output);
+    output.push_info(&stack.to_formatted_string(config)?);
     Ok(())
 }
 
-fn handle_bookmark(args: &BookmarkArgs, config: &Config, bookmarks: &mut Bookmarks, stack: &mut Stack) -> Result<()> {
+fn handle_bookmark(args: &BookmarkArgs, config: &Config, bookmarks: &mut Bookmarks, stack: &mut Stack, output: &mut Output) -> Result<()> {
     // if args.bookmark_action.is_some() {
     if let Some(action) = &args.bookmark_action {
         match action {
-            BookmarkAction::list(_) => list_bookmarks(config, bookmarks)?,
-            BookmarkAction::add(args) => add_bookmarks(args, config, bookmarks)?,
-            BookmarkAction::remove(args) => remove_bookmarks(args, config, bookmarks)?,
+            BookmarkAction::list(_) => list_bookmarks(config, bookmarks, output)?,
+            BookmarkAction::add(args) => add_bookmarks(args, config, bookmarks, output)?,
+            BookmarkAction::remove(args) => remove_bookmarks(args, config, bookmarks, output)?,
         };
     } else if args.name.is_some() { // handle `change to bookmark`
         let path = bookmarks.get_path_by_name(args.name.as_ref().unwrap())?;
-        push_path(&path, stack, config)?;
+        push_path(&path, stack, config, output)?;
     } else {
-        return Err(Error::other(
-            "-- provide either a `subcommand` or a `bookmark name`",
-        ));
+        list_bookmarks(config, bookmarks, output)?;
     }
     Ok(())
 }
@@ -147,13 +146,12 @@ fn handle_bookmark(args: &BookmarkArgs, config: &Config, bookmarks: &mut Bookmar
 //     Ok(())
 // }
 
-fn list_bookmarks(config: &Config, bookmarks: &mut Bookmarks) -> Result<()> {
-    let output = bookmarks.to_formatted_string(&config.settings)?;
-    println!("echo '{}'", output);
+fn list_bookmarks(config: &Config, bookmarks: &mut Bookmarks, output: &mut Output) -> Result<()> {
+    output.push_info(&bookmarks.to_formatted_string(config)?);
     Ok(())
 }
 
-fn add_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookmarks) -> Result<()> {
+fn add_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookmarks, output: &mut Output) -> Result<()> {
     let mut path = match args.path.clone() {
         Some(value) => value,
         None => return Err(Error::other("-- missing path argument")),
@@ -163,31 +161,40 @@ fn add_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookma
         Err(error) => return Err(Error::other(error.to_string())),
     };
     bookmarks.add_bookmark(&args.name, &path)?;
+
+    if config.general.show_books_on_bookmark {
+        output.push_info(&bookmarks.to_formatted_string(config)?);
+    } else {
+        output.push_info(&format!("added bookmark `{}{}{}`.", generate_style_sequence(Some(STYLES.set.bold), None, None), args.name, RESET_SEQ));
+    }
+
     Ok(())
 }
 
-fn remove_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookmarks) -> Result<()> {
+fn remove_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookmarks, output: &mut Output) -> Result<()> {
     bookmarks.remove_bookmark(&args.name)?;
+    
+    if config.general.show_books_on_bookmark {
+        output.push_info(&bookmarks.to_formatted_string(config)?);
+    } else {
+        output.push_info(&format!("remove bookmark `{}{}{}`.", generate_style_sequence(Some(STYLES.set.bold), None, None), args.name, RESET_SEQ));
+    }
     Ok(())
 }
 
 /// push path to stack and print command to navigate to provided path
-fn push_path(path: &Path, stack: &mut Stack, config: &Config) -> Result<()> {
+fn push_path(path: &Path, stack: &mut Stack, config: &Config, output: &mut Output) -> Result<()> {
     if !path.is_dir() {
         return Err(Error::other("-- invalid path argument"));
     }
     let current_path = current_dir()?;
-    let next_path = path.canonicalize()?;
     stack.push_entry(&current_path)?;
-    if config.settings.general.show_stack_on_push {
-        print!("echo '{}' && ", stack.to_formatted_string(&config.settings)?);
+    if config.general.show_stack_on_push {
+        output.push_info(&stack.to_formatted_string(&config)?);
     }
-    println!(
-        "cd -- {}",
-        match next_path.to_str() {
-            Some(value) => value,
-            None => return Err(Error::other("-- failed to print provided path as string")),
-        }
-    );
+    output.push_command(&format!("cd -- {}", match path.canonicalize()?.to_str() {
+        Some(value) => value,
+        None => return Err(Error::other("-- failed to print provided path as string")),
+    }));
     Ok(())
 }
