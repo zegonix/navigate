@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
 
-export PATH="$PATH:$PWD/target/debug/"
-pid=( $(ps -o ppid) )
-arg_pid=" --pid ${pid[-2]} "
-
 __call_navigate() {
+    arg_pid=" --pid $$ "
     eval "$(navigate ${arg_pid} $@)"
 }
 
