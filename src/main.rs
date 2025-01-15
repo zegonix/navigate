@@ -153,13 +153,9 @@ fn list_bookmarks(config: &Config, bookmarks: &mut Bookmarks, output: &mut Outpu
 }
 
 fn add_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookmarks, output: &mut Output) -> Result<()> {
-    let mut path = match args.path.clone() {
+    let path = match args.path.clone() {
         Some(value) => value,
         None => return Err(Error::other("-- missing path argument")),
-    };
-    path = match path.canonicalize() {
-        Ok(value) => value,
-        Err(error) => return Err(Error::other(error.to_string())),
     };
     bookmarks.add_bookmark(&args.name, &path)?;
 
@@ -188,7 +184,7 @@ fn push_path(path: &Path, stack: &mut Stack, config: &Config, output: &mut Outpu
     if !path.is_dir() {
         return Err(Error::other("-- invalid path argument"));
     }
-    let current_path = current_dir()?;
+    let current_path: PathBuf = current_dir()?;
     stack.push_entry(&current_path)?;
     if config.general.show_stack_on_push {
         output.push_info(&stack.to_formatted_string(&config)?);

@@ -3,7 +3,8 @@ use std::{
     path::{Component, PathBuf},
 };
 
-pub fn to_lexical_absolute(path: PathBuf) -> Result<PathBuf> {
+/// returns absolute path but keeps links
+pub fn to_rooted(path: &mut PathBuf) -> Result<()> {
     let mut absolute = if path.is_absolute() {
         std::path::PathBuf::new()
     } else {
@@ -15,5 +16,7 @@ pub fn to_lexical_absolute(path: PathBuf) -> Result<PathBuf> {
             component @ _ => absolute.push(component.as_os_str()),
         }
     }
-    Ok(absolute)
+    *path = absolute;
+    Ok(())
 }
+

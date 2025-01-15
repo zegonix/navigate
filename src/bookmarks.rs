@@ -8,8 +8,8 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use dirs::config_dir;
 
-use super::config::*;
-use config_parser::{apply_format, make_padding_string, RESET_ARG, RESET_SEQ};
+use super::{config::*, util::to_rooted};
+use config_parser::{apply_format, make_padding_string, RESET_SEQ};
 
 #[derive(Debug, Clone)]
 pub struct Bookmarks {
@@ -44,10 +44,11 @@ impl Bookmarks {
                 continue;
             }
             let key: String = String::from(tokens[0]);
-            let path = match PathBuf::from_str(tokens[1]) {
+            let mut path: PathBuf = match PathBuf::from_str(tokens[1]) {
                 Ok(value) => value,
                 Err(err) => return Err(Error::other(err.to_string())),
             };
+            to_rooted(&mut path)?;
             if !path.is_dir() {
                 continue;
             }
@@ -69,6 +70,8 @@ impl Bookmarks {
 
     /// adds a key/value pair to bookmarks and writes the bookmarks file
     pub fn add_bookmark(&mut self, name: &String, path: &PathBuf) -> Result<()> {
+        let mut path = path.to_path_buf();
+        to_rooted(&mut path)?;
         if !path.is_dir() {
             return Err(Error::other(
                 "-- provided path argument does not point to a valid directory",

@@ -5,8 +5,8 @@
 - [x] drop stack
 - [x] config file
   - [x] implement procedural macro for config
-    - [x] to parse config
-    - [ ] to write default config
+    - [x] .. to parse config
+    - [ ] .. to write default config
   - [ ] dedup stack option
   - [x] parse config file
   - [ ] apply config -- partially more done than before :)

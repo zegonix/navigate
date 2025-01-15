@@ -27,9 +27,11 @@ pub struct GeneralSettings {
 
 #[derive(Debug, Clone, Default, ConfigParser)]
 pub struct FormatSettings {
-    pub stack_separator: String,
-    pub bookmarks_separator: String,
     pub align_separators: bool,
+    pub stack_separator: String,
+    pub stack_home_as_tilde: bool,
+    pub bookmarks_separator: String,
+    pub book_home_as_tilde: bool,
 }
 
 #[derive(Debug, Clone, Default, ConfigParser)]
@@ -68,21 +70,23 @@ impl Config {
                 show_books_on_bookmark: false,
             },
             format: FormatSettings {
-                bookmarks_separator: String::new(),
-                stack_separator: String::new(),
                 align_separators: false,
+                stack_separator: " - ".to_owned(),
+                stack_home_as_tilde: true,
+                bookmarks_separator: " - ".to_owned(),
+                book_home_as_tilde: true,
             },
             styles: StyleSettings {
-                warning_style: String::new(),
-                error_style: String::new(),
-                stack_number_style: String::new(),
-                stack_separator_style: String::new(),
-                stack_path_style: String::new(),
-                stack_punct_style: String::new(),
-                bookmarks_name_style: String::new(),
-                bookmarks_seperator_style: String::new(),
-                bookmarks_path_style: String::new(),
-                bookmarks_punct_style: String::new(),
+                warning_style: "default".to_owned(),
+                error_style: "default".to_owned(),
+                stack_number_style: "default".to_owned(),
+                stack_separator_style: "default".to_owned(),
+                stack_path_style: "default".to_owned(),
+                stack_punct_style: "default".to_owned(),
+                bookmarks_name_style: "default".to_owned(),
+                bookmarks_seperator_style: "default".to_owned(),
+                bookmarks_path_style: "default".to_owned(),
+                bookmarks_punct_style: "default".to_owned(),
             },
         };
         // get configuration directory

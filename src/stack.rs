@@ -5,11 +5,11 @@ use std::fs::File;
 use std::io::{Error, Result};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use config_parser::{RESET_SEQ, STYLES};
+use config_parser::RESET_SEQ;
 use sysinfo::{Pid, System};
 
 use crate::make_padding_string;
-use super::{apply_format, config::*};
+use super::{apply_format, config::*, util::to_rooted};
 
 #[derive(Debug, Clone)]
 pub struct Stack {
@@ -19,6 +19,8 @@ pub struct Stack {
 }
 
 impl Stack {
+    const STACK_FILE_DIRECTORY: &str = "/tmp/navigate/";
+
     pub fn new(process_id: u32) -> Result<Self> {
         let mut stack: Stack = Stack {
             pid: process_id,
@@ -67,10 +69,11 @@ impl Stack {
     /// push entry to stack
     /// returns updated stack
     pub fn push_entry(&mut self, path: &Path) -> Result<&Vec<PathBuf>> {
-        let abs_path = path.canonicalize()?;
-        //let abs_path = super::util::to_lexical_absolute(path.to_path_buf())?; TODO: fix paths and
-        //stuff
-        self.stack.push(abs_path);
+        let mut path: PathBuf = path.to_path_buf();
+        to_rooted(&mut path)?;
+
+        // append path to stack and write stack file to save changes
+        self.stack.push(path);
         self.write_stack_file()?;
         Ok(&self.stack)
     }
@@ -110,7 +113,7 @@ impl Stack {
 
     /// clean up dead stack files, parse and build stack
     fn build_stack(&mut self) -> Result<()> {
-        let stack_dir: PathBuf = match PathBuf::from_str("/tmp/navigation/") {
+        let stack_dir: PathBuf = match PathBuf::from_str(Self::STACK_FILE_DIRECTORY) {
             Ok(value) => value,
             Err(_) => {
                 return Err(Error::other(
