@@ -11,7 +11,7 @@ use generator_functions::*;
 /// which parses a string and fills the fills recognised values into the struct
 /// - implements `write_default_config() -> Result<String>`
 /// which write a default configuration, in case the documentation is lacking
-#[proc_macro_derive(ConfigParser, attributes(nested_config, no_config, style_config))]
+#[proc_macro_derive(ConfigParser, attributes(default_value, nested_config, no_config, style_config))]
 pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
     let name = &ast.ident;
@@ -21,6 +21,9 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     } else {
         panic!("the macro `ConfigParser` applies only to structs!");
     };
+    if name.to_string() == "GeneralSettings" {
+        println!("ast = {:#?}", ast);
+    }
     let assignments: TokenStream = gen_config_assignments(fields, &config_name);
     let func_parse_string: TokenStream = gen_parse_from_string(&config_name, &assignments);
     let func_parse_map: TokenStream = gen_parse_from_map(&config_name, &assignments);

@@ -83,6 +83,43 @@ pub fn gen_to_string(name: &Ident, fields: &Punctuated<Field, Comma>) -> TokenSt
     }
 }
 
+pub fn gen_default(fields: &Punctuated<Field, Comma>) -> TokenStream {
+    let mut defaults: TokenStream = TokenStream::new();
+    'fields: for field in fields.iter() {
+        let attr = &field.attrs;
+        let name = match &field.ident {
+            Some(value) => value,
+            // skip anonymous fields
+            None => continue 'fields,
+        };
+        let ty = &field.ty;
+        for attribute in attr {
+            if let Attribute{ meta: Meta::Path( Path{segments: attr_name, ..} ), .. } = attribute {
+                match attr_name.first() {
+                    Some(value) => if value.ident == "default_value" {
+                        let default_value = get_attribute_value(attribute);
+                        defaults.extend(quote! {
+                            #name: #default_value,
+                        });
+                    } else if value.ident == "nested_config" {
+                        defaults.extend(quote! {
+                            #name: #ty.default()?;
+                        });
+                    },
+                    None => (),
+                }
+            }
+        }
+    };
+    quote!{
+        /// returns an instance with default values
+        pub fn default(&mut self) -> std::io::Result<()> {
+            #defaults
+            Ok(())
+        }
+    }
+}
+
 pub fn gen_config_assignments(fields: &Punctuated<Field, Comma>, config_map_name: &syn::Ident) -> TokenStream {
     let mut assignments : TokenStream = TokenStream::new();
     'fields: for field in fields.iter() {
@@ -127,3 +164,7 @@ pub fn gen_config_assignments(fields: &Punctuated<Field, Comma>, config_map_name
     assignments
 }
 
+fn get_attribute_value(attribute: &Attribute) -> TokenStream {
+    //if let Attribute{ Meta::List }
+    TokenStream::new()
+}

@@ -20,8 +20,11 @@ pub struct Config {
 
 #[derive(Debug, Clone, Default, ConfigParser)]
 pub struct GeneralSettings {
+    #[default_value(false)]
     pub show_stack_on_push: bool,
+    #[no_config]
     pub show_stack_on_pop: bool,
+    #[default_value = false]
     pub show_books_on_bookmark: bool,
 }
 
