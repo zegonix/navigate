@@ -2,4 +2,8 @@
 pub mod common;
 pub mod format;
 
-pub use common::parse_config_file;
+pub use common::{
+    ConfigElement,
+    ConfigMap,
+    parse_config_file,
+};

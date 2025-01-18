@@ -13,6 +13,7 @@ use bookmarks::*;
 use config_parser::*;
 use output::Output;
 use stack::Stack;
+use util::to_rooted;
 use std::env::{current_dir, var};
 use std::io::{Error, Result};
 use std::path::{Path, PathBuf};
@@ -181,17 +182,21 @@ fn remove_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Boo
 
 /// push path to stack and print command to navigate to provided path
 fn push_path(path: &Path, stack: &mut Stack, config: &Config, output: &mut Output) -> Result<()> {
+    let mut path = path.to_path_buf();
+    let mut current_path: PathBuf = current_dir()?;
+    to_rooted(&mut path)?;
+    to_rooted(&mut current_path)?;
     if !path.is_dir() {
         return Err(Error::other("-- invalid path argument"));
+    } else if !(path == current_path) {
+        stack.push_entry(&current_path)?;
+        output.push_command(&format!("cd -- {}", match path.canonicalize()?.to_str() {
+            Some(value) => value,
+            None => return Err(Error::other("-- failed to print provided path as string")),
+        }));
     }
-    let current_path: PathBuf = current_dir()?;
-    stack.push_entry(&current_path)?;
     if config.general.show_stack_on_push {
         output.push_info(&stack.to_formatted_string(&config)?);
     }
-    output.push_command(&format!("cd -- {}", match path.canonicalize()?.to_str() {
-        Some(value) => value,
-        None => return Err(Error::other("-- failed to print provided path as string")),
-    }));
     Ok(())
 }

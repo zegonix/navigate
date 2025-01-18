@@ -1,15 +1,15 @@
 use proc_macro2::{Ident, TokenStream};
-use syn::{Attribute, Field, Meta, Path, punctuated::Punctuated, token::Comma};
+use syn::{Attribute, Field, Meta, MetaList, Path, punctuated::Punctuated, token::Comma};
 use quote::quote;
 
-pub fn gen_parse_from_string(config_name: &Ident, assignments: &TokenStream) -> TokenStream {
+pub fn gen_parse_from_string(config_name: &Ident, output_name: &Ident, assignments: &TokenStream) -> TokenStream {
     quote! {
         /// tries to parse config from a string
         /// if **convert_styles** == true, the settings marked with
         /// `style_config` are converted to ansi escape sequences to
         /// style terminal ouput
         pub fn parse_from_string(&mut self, input: &String) -> std::io::Result<()> {
-            let mut #config_name : std::collections::HashMap<String, String> = parse_config_file(input)?;
+            let (mut #config_name, mut #output_name) : (ConfigMap, Vec<String>) = parse_config_file(input);
 
             #assignments
 
@@ -27,8 +27,9 @@ pub fn gen_parse_from_map(config_name: &Ident, assignments: &TokenStream) -> Tok
         /// **do not call**
         /// this function needs to be public for nested configs but is not intended
         /// to be called by the user
-        pub fn parse_from_map(&mut self, input: &mut std::collections::HashMap<String, String>) -> std::io::Result<()> {
+        pub fn parse_from_map(&mut self, input: &mut ConfigMap) -> std::io::Result<()> {
             let mut #config_name = input;
+            let mut output: String = String::new();
 
             #assignments
 
@@ -74,15 +75,6 @@ pub fn gen_to_ansi_sequences(fields: &Punctuated<Field, Comma>) -> TokenStream {
     }
 }
 
-pub fn gen_to_string(name: &Ident, fields: &Punctuated<Field, Comma>) -> TokenStream {
-    quote! {
-        /// prints configuration to `String`
-        //pub fn to_string() -> String {
-        //    let mut default = "# default configuration file for `navigate`\n".to_string();
-        //}
-    }
-}
-
 pub fn gen_default(fields: &Punctuated<Field, Comma>) -> TokenStream {
     let mut defaults: TokenStream = TokenStream::new();
     'fields: for field in fields.iter() {
@@ -94,33 +86,44 @@ pub fn gen_default(fields: &Punctuated<Field, Comma>) -> TokenStream {
         };
         let ty = &field.ty;
         for attribute in attr {
-            if let Attribute{ meta: Meta::Path( Path{segments: attr_name, ..} ), .. } = attribute {
-                match attr_name.first() {
-                    Some(value) => if value.ident == "default_value" {
-                        let default_value = get_attribute_value(attribute);
-                        defaults.extend(quote! {
-                            #name: #default_value,
+            match attribute {
+                Attribute { meta: Meta::Path(Path{segments, ..}), .. } => {
+                    let attr_name = match segments.first() {
+                        Some(value) => value,
+                        None => panic!("no valid attribute found!"),
+                    };
+                    if attr_name.ident == "nested_config" {
+                        defaults.extend(quote!{
+                            #name: #ty::default(),
                         });
-                    } else if value.ident == "nested_config" {
-                        defaults.extend(quote! {
-                            #name: #ty.default()?;
+                    }
+                },
+                Attribute { meta: Meta::List(MetaList{ path: Path{ segments, .. }, tokens, .. }), .. } => {
+                    let attr_name = match segments.first() {
+                        Some(value) => value,
+                        None => panic!("no valid attribute found!"),
+                    };
+                    if attr_name.ident == "default_value" {
+                        defaults.extend(quote!{
+                            #name: #tokens.into(),
                         });
-                    },
-                    None => (),
-                }
+                    }
+                },
+                _ => (),
             }
         }
     };
     quote!{
         /// returns an instance with default values
-        pub fn default(&mut self) -> std::io::Result<()> {
-            #defaults
-            Ok(())
+        pub fn default() -> Self {
+            Self {
+                #defaults
+            }
         }
     }
 }
 
-pub fn gen_config_assignments(fields: &Punctuated<Field, Comma>, config_map_name: &syn::Ident) -> TokenStream {
+pub fn gen_config_assignments(fields: &Punctuated<Field, Comma>, config_map_name: &syn::Ident, output_name: &syn::Ident) -> TokenStream {
     let mut assignments : TokenStream = TokenStream::new();
     'fields: for field in fields.iter() {
         let attr = &field.attrs;
@@ -132,39 +135,44 @@ pub fn gen_config_assignments(fields: &Punctuated<Field, Comma>, config_map_name
         let name_string: String = name.to_string();
         let ty = &field.ty;
         for attribute in attr {
-            if let Attribute{ meta: Meta::Path( Path{segments: attr_name, ..} ), .. } = attribute {
-                match attr_name.first() {
-                    Some(value) => if value.ident == "nested_config" {
-                        assignments.extend(quote! {
-                            self.#name.parse_from_map(&mut #config_map_name);
-                        });
-                        continue 'fields;
-                    } else if value.ident == "no_config" {
-                        continue 'fields;
+            if let Attribute{ meta: Meta::Path( Path{segments, ..} ), .. } = attribute {
+                match segments.first() {
+                    Some(attr_name) => {
+                        if attr_name.ident == "nested_config" {
+                            assignments.extend(quote! {
+                                if let Some(value) = #config_map_name.get(#name_string) {
+                                    self.#name.parse_from_map(&mut value);
+                                } else {
+                                    #output_name.push(&format!("no table `{}` found in config file", #name_string));
+                                }
+                            });
+                            continue 'fields;
+                        } else if attr_name.ident == "no_config" {
+                            continue 'fields;
+                        }
                     },
                     None => (),
                 }
             }
+            //} else if let Attribute{ meta: Meta::List()}
         }
         assignments.extend(quote! {
-            self.#name = match #config_map_name.get(#name_string) {
-                Some(value) => match value.parse::<#ty>() {
+            if let Some(value) = #config_map_name.get(#name_string) {
+                self.#name = match value.parse::<#ty>() {
                     Ok(parsed) => {
                         parsed
                     },
-                    // TODO: implement warnings about errors here
                     Err(_) => {
+                        #output_name.push(format!("failed to parse value found for `{}`", #name_string));
                         self.#name.clone()
                     },
-                },
-                None => self.#name.clone(),
+                };
+            } else {
+                #output_name.push(format!("could not find `{}` in config file", #name_string));
+                self.#name = self.#name.clone();
             };
         });
     }
     assignments
 }
 
-fn get_attribute_value(attribute: &Attribute) -> TokenStream {
-    //if let Attribute{ Meta::List }
-    TokenStream::new()
-}

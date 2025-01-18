@@ -22,42 +22,57 @@ pub struct Config {
 pub struct GeneralSettings {
     #[default_value(false)]
     pub show_stack_on_push: bool,
-    #[no_config]
+    #[default_value(false)]
     pub show_stack_on_pop: bool,
-    #[default_value = false]
+    #[default_value(false)]
     pub show_books_on_bookmark: bool,
 }
 
 #[derive(Debug, Clone, Default, ConfigParser)]
 pub struct FormatSettings {
+    #[default_value(true)]
     pub align_separators: bool,
+    #[default_value(" - ")]
     pub stack_separator: String,
+    #[default_value(false)]
     pub stack_home_as_tilde: bool,
+    #[default_value(" - ")]
     pub bookmarks_separator: String,
+    #[default_value(false)]
     pub book_home_as_tilde: bool,
 }
 
 #[derive(Debug, Clone, Default, ConfigParser)]
 pub struct StyleSettings {
     #[style_config]
+    #[default_value("yellow, italic")]
     pub warning_style: String,
     #[style_config]
+    #[default_value("red, bold")]
     pub error_style: String,
     #[style_config]
+    #[default_value("default")]
     pub stack_number_style: String,
     #[style_config]
+    #[default_value("cyan")]
     pub stack_separator_style: String,
     #[style_config]
+    #[default_value("default")]
     pub stack_path_style: String,
     #[style_config]
+    #[default_value("magenta")]
     pub stack_punct_style: String,
     #[style_config]
+    #[default_value("default")]
     pub bookmarks_name_style: String,
     #[style_config]
+    #[default_value("cyan")]
     pub bookmarks_seperator_style: String,
     #[style_config]
+    #[default_value("default")]
     pub bookmarks_path_style: String,
     #[style_config]
+    #[default_value("magenta")]
     pub bookmarks_punct_style: String,
 }
 
@@ -66,32 +81,7 @@ impl Config {
 
     /// generates and populates a new instance of Config
     pub fn new(styles_as_ansi_sequences: bool) -> Result<Self> {
-        let mut config = Config {
-            general: GeneralSettings {
-                show_stack_on_push: false,
-                show_stack_on_pop: false,
-                show_books_on_bookmark: false,
-            },
-            format: FormatSettings {
-                align_separators: false,
-                stack_separator: " - ".to_owned(),
-                stack_home_as_tilde: true,
-                bookmarks_separator: " - ".to_owned(),
-                book_home_as_tilde: true,
-            },
-            styles: StyleSettings {
-                warning_style: "default".to_owned(),
-                error_style: "default".to_owned(),
-                stack_number_style: "default".to_owned(),
-                stack_separator_style: "default".to_owned(),
-                stack_path_style: "default".to_owned(),
-                stack_punct_style: "default".to_owned(),
-                bookmarks_name_style: "default".to_owned(),
-                bookmarks_seperator_style: "default".to_owned(),
-                bookmarks_path_style: "default".to_owned(),
-                bookmarks_punct_style: "default".to_owned(),
-            },
-        };
+        let mut config = Self::default();
         // get configuration directory
         let mut conf_file = match config_dir() {
             Some(value) => value,
