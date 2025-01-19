@@ -15,24 +15,34 @@ pub fn gen_parse_from_string(config_name: &Ident, output_name: &Ident, assignmen
 
             if !#config_name.is_empty() {
                 let leftovers = #config_name.keys().cloned().collect::<Vec<String>>();
-                return Err(std::io::Error::other(format!("the following settings were not recognised: {:#?}", leftovers)));
+                #output_name.push(format!("the following settings were not recognised: {:#?}", leftovers));
+            }
+            if !#output_name.is_empty() {
+                return Err(std::io::Error::other(format!("{}", #output_name.join("\n"))));
             }
             Ok(())
         }
     }
 }
 
-pub fn gen_parse_from_map(config_name: &Ident, assignments: &TokenStream) -> TokenStream {
+pub fn gen_parse_from_map(config_name: &Ident, output_name: &Ident, assignments: &TokenStream) -> TokenStream {
     quote! {
         /// **do not call**
         /// this function needs to be public for nested configs but is not intended
         /// to be called by the user
-        pub fn parse_from_map(&mut self, input: &mut ConfigMap) -> std::io::Result<()> {
-            let mut #config_name = input;
-            let mut output: String = String::new();
+        pub fn parse_from_map(&mut self, input: ConfigMap) -> std::io::Result<()> {
+            let mut #config_name: ConfigMap = input;
+            let mut #output_name: Vec<String> = Vec::<String>::new();
 
             #assignments
 
+            if !#config_name.is_empty() {
+                let leftovers = #config_name.keys().cloned().collect::<Vec<String>>();
+                #output_name.push(format!("the following settings were not recognised: {:#?}", leftovers));
+            }
+            if !#output_name.is_empty() {
+                return Err(std::io::Error::other(format!("{}", #output_name.join("\n"))));
+            }
             Ok(())
         }
     }
@@ -140,10 +150,14 @@ pub fn gen_config_assignments(fields: &Punctuated<Field, Comma>, config_map_name
                     Some(attr_name) => {
                         if attr_name.ident == "nested_config" {
                             assignments.extend(quote! {
-                                if let Some(value) = #config_map_name.get(#name_string) {
-                                    self.#name.parse_from_map(&mut value);
-                                } else {
-                                    #output_name.push(&format!("no table `{}` found in config file", #name_string));
+                                match #config_map_name.remove(#name_string) {
+                                    Some(ConfigElement::Nested(map)) => {
+                                        if let Err(error) = self.#name.parse_from_map(map) {
+                                            #output_name.push(error.to_string());
+                                        }
+                                    },
+                                    Some(ConfigElement::Setting(_)) => #output_name.push(format!("`{}` is defined as a nested element, but the configuration file defines it a setting element", #name_string)),
+                                    None => #output_name.push(format!("no table `{}` found in config file", #name_string)),
                                 }
                             });
                             continue 'fields;
@@ -157,19 +171,25 @@ pub fn gen_config_assignments(fields: &Punctuated<Field, Comma>, config_map_name
             //} else if let Attribute{ meta: Meta::List()}
         }
         assignments.extend(quote! {
-            if let Some(value) = #config_map_name.get(#name_string) {
-                self.#name = match value.parse::<#ty>() {
-                    Ok(parsed) => {
-                        parsed
-                    },
-                    Err(_) => {
-                        #output_name.push(format!("failed to parse value found for `{}`", #name_string));
-                        self.#name.clone()
-                    },
-                };
-            } else {
-                #output_name.push(format!("could not find `{}` in config file", #name_string));
-                self.#name = self.#name.clone();
+            match #config_map_name.remove(#name_string) {
+                Some(ConfigElement::Setting(value)) => {
+                    self.#name = match value.parse::<#ty>() {
+                        Ok(parsed) => {
+                            parsed
+                        },
+                        Err(_) => {
+                            #output_name.push(format!("failed to parse value found for `{}`", #name_string));
+                            self.#name.clone()
+                        },
+                    };
+                },
+                Some(ConfigElement::Nested(_)) => {
+                    #output_name.push(format!("`{}` is a setting element, but the configuration file defines it as a nested element (Table)", #name_string));
+                },
+                None => {
+                    #output_name.push(format!("could not find `{}` in config file", #name_string));
+                    self.#name = self.#name.clone();
+                },
             };
         });
     }

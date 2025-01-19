@@ -60,7 +60,7 @@ pub struct StyleSettings {
     #[default_value("default")]
     pub stack_path_style: String,
     #[style_config]
-    #[default_value("magenta")]
+    #[default_value("green")]
     pub stack_punct_style: String,
     #[style_config]
     #[default_value("default")]
@@ -72,7 +72,7 @@ pub struct StyleSettings {
     #[default_value("default")]
     pub bookmarks_path_style: String,
     #[style_config]
-    #[default_value("magenta")]
+    #[default_value("green")]
     pub bookmarks_punct_style: String,
 }
 
@@ -81,7 +81,7 @@ impl Config {
 
     /// generates and populates a new instance of Config
     pub fn new(styles_as_ansi_sequences: bool) -> Result<Self> {
-        let mut config = Self::default();
+        let mut config: Config = Self::default();
         // get configuration directory
         let mut conf_file = match config_dir() {
             Some(value) => value,
