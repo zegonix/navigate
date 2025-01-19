@@ -103,6 +103,9 @@ pub enum BookmarkAction {
 
     /// remove a bookmark by name `book remove <name>`
     remove(BookmarkSubArgs),
+
+    /// get bookmarknames for shell completions
+    names(EmptyArgs),
 }
 
 #[derive(Debug, Clone, Args)]

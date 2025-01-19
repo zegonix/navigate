@@ -131,6 +131,7 @@ fn handle_bookmark(args: &BookmarkArgs, config: &Config, bookmarks: &mut Bookmar
             BookmarkAction::list(_) => list_bookmarks(config, bookmarks, output)?,
             BookmarkAction::add(args) => add_bookmarks(args, config, bookmarks, output)?,
             BookmarkAction::remove(args) => remove_bookmarks(args, config, bookmarks, output)?,
+            BookmarkAction::names(_) => println!("echo '{}'", bookmarks.get_bookmarknames()),
         };
     } else if args.name.is_some() { // handle `change to bookmark`
         let path = bookmarks.get_path_by_name(args.name.as_ref().unwrap())?;

@@ -128,6 +128,12 @@ impl Bookmarks {
         Ok(buffer)
     }
 
+    /// get bookmarknames as space separated values in one string (for shell completions)
+    pub fn get_bookmarknames(&self) -> String {
+        let mut names: Vec<String> = self.bookmarks.keys().cloned().collect();
+        names.join(" ")
+    }
+
     /// writes the bookmarks file
     fn write_bookmark_file(&self) -> Result<()> {
         let mut file_content = String::new();
