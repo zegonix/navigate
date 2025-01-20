@@ -116,7 +116,7 @@ impl Bookmarks {
                 );
 
                 let mut path = apply_format(path.to_str().unwrap(), &config.styles.bookmarks_path_style);
-                path = path.replace('/', &format!("{}/{}{}", config.styles.bookmarks_punct_style, RESET_SEQ, &config.styles.bookmarks_path_style));
+                path = path.replace('/', &format!("{}{}/{}{}", RESET_SEQ, config.styles.bookmarks_punct_style, RESET_SEQ, &config.styles.bookmarks_path_style));
 
                 if config.format.align_separators {
                     buffer.push_str(&format!("{}{}{}{}\n", name, padding, separator, path));

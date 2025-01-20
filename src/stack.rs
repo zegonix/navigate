@@ -49,7 +49,7 @@ impl Stack {
                     &config.styles.stack_separator_style,
                 );
                 let mut path = apply_format(item.to_str().unwrap(), &config.styles.stack_path_style);
-                path = path.replace('/', &format!("{}/{}{}", config.styles.stack_punct_style, RESET_SEQ, config.styles.stack_path_style));
+                path = path.replace('/', &format!("{}{}/{}{}", RESET_SEQ, config.styles.stack_punct_style, RESET_SEQ, config.styles.stack_path_style));
                 if config.format.align_separators {
                     buffer.push_str(&format!("{}{}{}{}\n", number, padding, separator, path));
                 } else {
