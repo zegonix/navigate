@@ -1,12 +1,13 @@
 #![allow(dead_code)]
 
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::IndexMut};
 
 /// Holds config, value is either a `String` or a nested `ConfigMap`
 pub type ConfigMap = HashMap<String, ConfigElement>;
 
 /// Element of Config, either a `String` for a setting
 /// or a nested `ConfigMap`
+#[derive(Clone, Debug)]
 pub enum ConfigElement {
     Setting(String),
     Nested(ConfigMap),
@@ -20,8 +21,19 @@ pub fn parse_config_file(input: &String) -> (ConfigMap, Vec<String>) {
 
     for (n, line) in lines.enumerate() {
         let line = line.trim();
+
         // ignore empty lines
-        if line.is_empty() { continue; }
+        if line.is_empty() {
+            continue;
+        }
+
+        // ignore comments
+        if line.starts_with("#") {
+            continue;
+        }
+
+        // remove inline comments
+        let line: String = remove_inline_comment(line);
 
         if line.starts_with("[[") {
             messages.push(format!("error on line #{n} - arrays are not supported in config file:\n{}", line));
@@ -64,4 +76,31 @@ pub fn parse_config_file(input: &String) -> (ConfigMap, Vec<String>) {
     (config, messages)
 }
 
+/// searchs for the first `#` not contained within a string
+/// and drops the rest of the line
+pub fn remove_inline_comment(line: &str) -> String {
+    let mut single_quotes: bool = false;
+    let mut double_quotes: bool = false;
+    let string: String = line.to_string();
 
+    for (n, character) in line.char_indices() {
+        match character {
+            '\'' => {
+                single_quotes = !single_quotes;
+            },
+            '\"' => {
+                double_quotes = !double_quotes;
+            },
+            '#' => {
+                if single_quotes || double_quotes {
+                } else {
+                    return string[0..n].to_string();
+                }
+            },
+            _ => {
+                continue;
+            },
+        }
+    }
+    string
+}
