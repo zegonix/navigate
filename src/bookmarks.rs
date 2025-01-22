@@ -17,7 +17,7 @@ pub struct Bookmarks {
 }
 
 impl Bookmarks {
-    const BOOKMARK_FILE_PATH: &str = "navigate/bookmarks.conf";
+    const BOOKMARK_FILE_PATH: &str = "navigate/bookmarks";
 
     /// generates and populates a new instance of Config
     pub fn new() -> Result<Self> {
