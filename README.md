@@ -60,5 +60,6 @@ Style settings accept styles and one color in the following formats:
 * **named color**: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`
 * **numbered color**: `16`..`255`
 * **rgb color**: `#rrggbb`
+
 ***NOTE**: The styles and colors are applied as ansi escape sequences and most terminals do not support all options.*
 
