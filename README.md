@@ -63,3 +63,5 @@ Style settings accept styles and one color in the following formats:
 
 ***NOTE**: The styles and colors are applied as ansi escape sequences and most terminals do not support all options.*
 
+See [navigate.toml](./navigate.toml) for an example configuration file.
+
