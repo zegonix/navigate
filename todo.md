@@ -7,7 +7,7 @@
   - [x] implement procedural macro for config
     - [x] .. to parse config
     - [ ] .. to write default config
-    - [ ] .. ignore comments in config file
+    - [x] .. ignore comments in config file
   - [x] parse config file
   - [ ] apply config -- partially more done than before :)
     - [x] `show-bookmarks-on-book`
@@ -16,4 +16,5 @@
 - [x] bookmarks
   - [x] do not resolve links in bookmarks
 - [ ] push <number> to push path in stack
-- [ ] write documentation
+- [/] write documentation
+- [x] change config file extension to `.toml`

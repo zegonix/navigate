@@ -21,12 +21,32 @@ function book {
     __call_navigate "bookmark $@"
 }
 
-# completion for `book`
+# completion function for `book`
 function _book {
     CURRENT_WORD=${COMP_WORDS[COMP_CWORD]}
-    BOOKMARKS="$(__call_navigate bookmark names)"
-    COMPREPLY=($(compgen -W "${BOOKMARKS}" -- $CURRENT_WORD))
+    if [[ COMP_CWORD -eq 1 ]]; then
+        BOOKMARKS="add remove $(__call_navigate bookmark names)"
+        COMPREPLY=($(compgen -W "${BOOKMARKS}" -- $CURRENT_WORD))
+    elif [[ COMP_CWORD -eq 2 ]]; then
+        if [[ COMP_WORDS[1] -eq "remove" ]]; then
+            BOOKMARKS="$(__call_navigate bookmark names)"
+            COMPREPLY=($(compgen -W "${BOOKMARKS}" -- $CURRENT_WORD))
+        fi
+    elif [[ COMP_CWORD -eq 3 ]]; then
+        if [[ COMP_WORDS[1] -eq "add" ]]; then
+            COMPREPLY=($(compgen -o dirnames -- $CURRENT_WORD))
+        fi
+    fi
+}
+
+# completion function for `pop`
+function _pop {
+    CURRENT_WORD=${COMP_WORDS[COMP_CWORD]}
+    if [[ COMP_CWORD -eq 1 ]]; then
+        COMPREPLY=($(compgen -W "all <number>"))
+    fi
 }
 
 complete -o dirnames push
+complete -F _pop pop
 complete -F _book book
