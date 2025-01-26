@@ -6,7 +6,7 @@ use std::fs::File;
 use std::io::{Error, Result};
 use std::path::PathBuf;
 use std::str::FromStr;
-use dirs::config_dir;
+use dirs::{config_dir, home_dir};
 
 use super::{config::*, util::to_rooted};
 use config_parser::{apply_format, make_padding_string, RESET_SEQ};
@@ -116,6 +116,16 @@ impl Bookmarks {
                 );
 
                 let mut path = apply_format(path.to_str().unwrap(), &config.styles.bookmarks_path_style);
+                if config.format.book_home_as_tilde {
+                    let home = match home_dir() {
+                        Some(value) => match value.into_os_string().into_string() {
+                            Ok(value) => value,
+                            Err(error) => return Err(Error::other(format!("-- failed to conver home directory to string: {}", error.to_str().unwrap()))),
+                        },
+                        None => return Err(Error::other("-- `stack_home_as_tilde` = true, but home directory can't be determined")),
+                    };
+                    path = path.replace(&home, "~");
+                }
                 path = path.replace('/', &format!("{}{}/{}{}", RESET_SEQ, config.styles.bookmarks_punct_style, RESET_SEQ, &config.styles.bookmarks_path_style));
 
                 if config.format.align_separators {
@@ -130,7 +140,7 @@ impl Bookmarks {
 
     /// get bookmarknames as space separated values in one string (for shell completions)
     pub fn get_bookmarknames(&self) -> String {
-        let mut names: Vec<String> = self.bookmarks.keys().cloned().collect();
+        let names: Vec<String> = self.bookmarks.keys().cloned().collect();
         names.join(" ")
     }
 

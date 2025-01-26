@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use config_parser::RESET_SEQ;
 use sysinfo::{Pid, System};
+use dirs::home_dir;
 
 use crate::make_padding_string;
 use super::{apply_format, config::*, util::to_rooted};
@@ -49,6 +50,16 @@ impl Stack {
                     &config.styles.stack_separator_style,
                 );
                 let mut path = apply_format(item.to_str().unwrap(), &config.styles.stack_path_style);
+                if config.format.stack_home_as_tilde {
+                    let home = match home_dir() {
+                        Some(value) => match value.into_os_string().into_string() {
+                            Ok(value) => value,
+                            Err(error) => return Err(Error::other(format!("-- failed to conver home directory to string: {}", error.to_str().unwrap()))),
+                        },
+                        None => return Err(Error::other("-- `stack_home_as_tilde` = true, but home directory can't be determined")),
+                    };
+                    path = path.replace(&home, "~");
+                }
                 path = path.replace('/', &format!("{}{}/{}{}", RESET_SEQ, config.styles.stack_punct_style, RESET_SEQ, config.styles.stack_path_style));
                 if config.format.align_separators {
                     buffer.push_str(&format!("{}{}{}{}\n", number, padding, separator, path));

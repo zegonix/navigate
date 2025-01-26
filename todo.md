@@ -16,5 +16,7 @@
 - [x] bookmarks
   - [x] do not resolve links in bookmarks
 - [ ] push <number> to push path in stack
-- [/] write documentation
+- [x] write documentation
 - [x] change config file extension to `.toml`
+- [x] add bash completions
+- [x] option to show home directory as '~'
