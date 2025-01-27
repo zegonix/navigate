@@ -11,10 +11,12 @@ use clap::Parser;
 use config::*;
 use bookmarks::*;
 use config_parser::*;
+use dirs::home_dir;
 use output::Output;
 use stack::Stack;
 use util::to_rooted;
-use std::env::{current_dir, var};
+use std::char;
+use std::env::current_dir;
 use std::io::{Error, Result};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -72,17 +74,29 @@ fn main() -> Result<()> {
 }
 
 fn handle_push(args: &PushArgs, config: &Config, stack: &mut Stack, output: &mut Output) -> Result<()> {
-    let path = match args.path.clone() {
+    const PREFIX: char = '=';
+    let mut path_string = match args.path.clone() {
         Some(value) => value,
         None => {
-            let home_dir = match var("HOME") {
-                Ok(value) => value,
-                Err(error) => return Err(Error::other(error.to_string())),
-            };
-            match PathBuf::from_str(&home_dir) {
-                Ok(value) => value,
-                Err(error) => return Err(Error::other(error.to_string())),
-            }
+            String::new()
+        }
+    };
+    let path: PathBuf = if path_string.is_empty() {
+        match home_dir() {
+            Some(value) => value,
+            None => return Err(Error::other("-- failed to determine home directory")),
+        }
+    } else if path_string.starts_with(PREFIX) {
+        path_string = path_string.trim_start_matches(PREFIX).to_string();
+        let number: usize = match path_string.parse() {
+            Ok(value) => value,
+            Err(_) => return Err(Error::other("-- push : failed to convert path argument to number")),
+        };
+        stack.get_entry_by_number(number)?.to_path_buf()
+    } else {
+        match PathBuf::from_str(&path_string) {
+            Ok(value) => value,
+            Err(_) => return Err(Error::other("-- failed to create PathBuf from argument")),
         }
     };
     push_path(&path, stack, config, output)?;

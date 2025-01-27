@@ -39,7 +39,7 @@ pub struct PushArgs {
     pub show_stack: Option<bool>,
 
     /// change to <path>
-    pub path: Option<PathBuf>,
+    pub path: Option<String>,
 }
 
 #[derive(Debug, Clone, Args)]

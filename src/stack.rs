@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::fs;
+use std::{fs, usize};
 use std::fs::File;
 use std::io::{Error, Result};
 use std::path::{Path, PathBuf};
@@ -112,13 +112,12 @@ impl Stack {
     /// return nth last entry
     pub fn get_entry_by_number(&mut self, entry_number: usize) -> Result<&PathBuf> {
         // index from the end of the vector as new entries are appended at the end of the list
-        let index = match self.stack.len().checked_sub(entry_number) {
-            Some(value) => value,
-            None => return Err(Error::other("-- no entry found at request index")),
-        };
-        match self.stack.get(index) {
-            Some(item) => Ok(item),
-            None => Err(Error::other("-- failed to retrieve stack entry by number")),
+        if entry_number >= self.stack.len() {
+            return Err(Error::other(format!("-- requested item ({entry_number}) out of bounds (stack.len() = {})", self.stack.len())));
+        }
+        match self.stack.iter().rev().nth(entry_number) {
+            Some(value) => Ok(value),
+            None => return Err(Error::other("-- failed to retrieve stack element #{entry_number}")),
         }
     }
 
