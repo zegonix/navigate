@@ -35,11 +35,9 @@ pub struct FormatSettings {
     #[default_value(" - ")]
     pub stack_separator: String,
     #[default_value(false)]
-    pub stack_home_as_tilde: bool,
+    pub show_home_as_tilde: bool,
     #[default_value(" - ")]
     pub bookmarks_separator: String,
-    #[default_value(false)]
-    pub book_home_as_tilde: bool,
 }
 
 #[derive(Debug, Clone, Default, ConfigParser)]

@@ -50,7 +50,7 @@ impl Stack {
                     &config.styles.stack_separator_style,
                 );
                 let mut path = apply_format(item.to_str().unwrap(), &config.styles.stack_path_style);
-                if config.format.stack_home_as_tilde {
+                if config.format.show_home_as_tilde {
                     let home = match home_dir() {
                         Some(value) => match value.into_os_string().into_string() {
                             Ok(value) => value,

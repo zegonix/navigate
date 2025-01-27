@@ -116,7 +116,7 @@ impl Bookmarks {
                 );
 
                 let mut path = apply_format(path.to_str().unwrap(), &config.styles.bookmarks_path_style);
-                if config.format.book_home_as_tilde {
+                if config.format.show_home_as_tilde {
                     let home = match home_dir() {
                         Some(value) => match value.into_os_string().into_string() {
                             Ok(value) => value,
