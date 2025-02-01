@@ -21,7 +21,7 @@ function book {
     __call_navigate "bookmark $@"
 }
 
-function nav_config {
+function navconfig {
     __call_navigate "configuration $@"
 }
 
