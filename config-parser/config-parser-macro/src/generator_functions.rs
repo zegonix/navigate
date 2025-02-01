@@ -1,5 +1,5 @@
 use proc_macro2::{Ident, TokenStream};
-use syn::{Attribute, Field, Meta, MetaList, Path, punctuated::Punctuated, token::Comma};
+use syn::{punctuated::Punctuated, token::Comma, Attribute, Expr, ExprLit, Field, Meta, MetaList, MetaNameValue, Path};
 use quote::quote;
 
 pub fn gen_parse_from_string(config_name: &Ident, output_name: &Ident, assignments: &TokenStream) -> TokenStream {
@@ -133,8 +133,76 @@ pub fn gen_default(fields: &Punctuated<Field, Comma>) -> TokenStream {
     }
 }
 
-pub fn gen_config_assignments(fields: &Punctuated<Field, Comma>, config_map_name: &syn::Ident, output_name: &syn::Ident) -> TokenStream {
-    let mut assignments : TokenStream = TokenStream::new();
+pub fn gen_to_string(fields: &Punctuated<Field, Comma>) -> TokenStream {
+    let mut statements: TokenStream = TokenStream::new();
+    let mut nested_statements: TokenStream = TokenStream::new();
+    let mut comment: TokenStream = TokenStream::new();
+    'fields: for field in fields.iter() {
+        let attr = &field.attrs;
+        let name = match &field.ident {
+            Some(value) => value,
+            None => continue 'fields,
+        };
+        let name_string = name.to_string();
+        // TODO: continue here
+        for attribute in attr {
+            if let Attribute{ meta: Meta::Path( Path{segments, ..} ), .. } = attribute {
+                // parse nested configs or skip nonconfig elements
+                match segments.first() {
+                    Some(attr_name) => {
+                        if attr_name.ident == "nested_config" {
+                            statements.extend(quote! {
+                                string.push_str(&format!("\n[{}]\n", #name_string));
+                                string.push_str(&self.#name.to_string_nested(&format!("{}", #name_string)));
+                            });
+                            nested_statements.extend(quote! {
+                                string.push_str(&format!("\n[{}.{}]\n", parents, #name_string));
+                                string.push_str(&self.#name.to_string_nested(&format!("{}.{}", parents, #name_string)));
+                            });
+                            continue 'fields;
+                        } else if attr_name.ident == "no_config" {
+                            continue 'fields;
+                        }
+                    },
+                    None => (),
+                }
+            } else if let Attribute{ meta: Meta::NameValue( MetaNameValue{path: Path{ segments, .. }, value: Expr::Lit(ExprLit{lit, ..}), ..} ), .. } = attribute {
+                // write comments to string
+                let attr_type = segments.first().unwrap();
+                if attr_type.ident == "doc" {
+                    comment = quote!{
+                        format!(" #{}", #lit)
+                    };
+                }
+            }
+        }
+        if comment.is_empty() {
+            comment.extend(quote! {""});
+        }
+        let code = quote!{
+            string.push_str(&format!("{} = {}{}\n", #name_string, self.#name.to_string(), #comment));
+        };
+        statements.extend(code.clone());
+        nested_statements.extend(code);
+    }
+    quote! {
+        pub fn to_string(&self) -> String {
+            let mut string = String::new();
+            #statements
+            string
+        }
+
+        /// macro function - do not call
+        pub fn to_string_nested(&self, parents: &String) -> String {
+            let mut string = String::new();
+            #nested_statements
+            string
+        }
+    }
+}
+
+pub fn gen_config_assignments(fields: &Punctuated<Field, Comma>, config_map_name: &Ident, output_name: &Ident) -> TokenStream {
+    let mut assignments: TokenStream = TokenStream::new();
     'fields: for field in fields.iter() {
         let attr = &field.attrs;
         let name = match &field.ident {

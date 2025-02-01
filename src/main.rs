@@ -28,14 +28,24 @@ fn main() -> Result<()> {
         Err(error) => {
             // config object is not ready at this point so the style
             // has to be created by hand
-            print!("echo '{}{}{}' && false", generate_style_sequence(None, Some(COLORS.fg.red), None), error, RESET_SEQ);
+            print!("echo -e '{}{}{}' && false", generate_style_sequence(None, Some(COLORS.fg.red), None), error, RESET_SEQ);
             return Ok(())
         }
     };
     let args = match Arguments::try_parse() {
         Ok(a) => a,
         Err(error) => {
-            output.push_error(&error.to_string());
+            match error.kind() {
+                clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion => {
+                    output.push_info(&error.to_string());
+                },
+                clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand => {
+                    output.push_warning(&error.to_string());
+                },
+                _ => {
+                    output.push_error(&error.to_string());
+                },
+            }
             output.print_output(&config);
             return Ok(());
         }
@@ -60,6 +70,7 @@ fn main() -> Result<()> {
         Action::pop(pop_args) => handle_pop(&pop_args, &config, &mut stack, &mut output),
         Action::stack(stack_args) => handle_stack(&stack_args, &config, &mut stack, &mut output),
         Action::bookmark(bookmark_args) => handle_bookmark(&bookmark_args, &config, &mut bookmarks, &mut stack, &mut output),
+        Action::configuration(config_args) => handle_config(&config_args, &mut output),
     };
 
     if res.is_err() {
@@ -156,12 +167,15 @@ fn handle_bookmark(args: &BookmarkArgs, config: &Config, bookmarks: &mut Bookmar
     Ok(())
 }
 
-// fn handle_config(args: &ConfigArgs, config: &Config) -> Result<()> {
-//     match args {
-//         ConfigAction::show => println!("echo '{}'", config.to_formatted_string()),
-//     }
-//     Ok(())
-// }
+fn handle_config(args: &ConfigArgs, output: &mut Output) -> Result<()> {
+    let convert: bool = match args.convert {
+        Some(value) => value,
+        None => false,
+    };
+    let config = Config::new(convert);
+    output.push_info(&format!("config = {:#?}", config));
+    Ok(())
+}
 
 fn list_bookmarks(config: &Config, bookmarks: &mut Bookmarks, output: &mut Output) -> Result<()> {
     output.push_info(&bookmarks.to_formatted_string(config)?);

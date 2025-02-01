@@ -30,6 +30,9 @@ pub enum Action {
 
     /// navigate to bookmark and add current path to the stack
     bookmark(BookmarkArgs),
+
+    /// display current configuartion (mostly for debugging)
+    configuration(ConfigArgs),
 }
 
 #[derive(Debug, Clone, Args)]
@@ -115,6 +118,13 @@ pub struct BookmarkSubArgs {
 
     /// path of bookmark to add
     pub path: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct ConfigArgs {
+    /// convert styles to ansi escape sequences
+    #[arg(short, long)]
+    pub convert: Option<bool>,
 }
 
 /// empty struct for subcommands with no arguments
