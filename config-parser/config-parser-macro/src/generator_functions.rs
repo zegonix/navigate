@@ -144,7 +144,6 @@ pub fn gen_to_string(fields: &Punctuated<Field, Comma>) -> TokenStream {
             None => continue 'fields,
         };
         let name_string = name.to_string();
-        // TODO: continue here
         for attribute in attr {
             if let Attribute{ meta: Meta::Path( Path{segments, ..} ), .. } = attribute {
                 // parse nested configs or skip nonconfig elements

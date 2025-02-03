@@ -143,14 +143,13 @@ impl Config {
         }
 
         // parse configuration file and populate config struct
+        // if the file is not found, navigate uses the defaults
         if config_file.is_file() {
             let config_str = match fs::read_to_string(&config_file) {
                 Ok(value) => value,
                 Err(error) => return Err(error),
             };
             _ = config.parse_from_string(&config_str);
-        } else {
-            // TODO: write default configuration
         }
 
         if styles_as_ansi_sequences {
