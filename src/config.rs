@@ -43,6 +43,10 @@ pub struct FormatSettings {
     #[default_value(false)]
     pub show_home_as_tilde: bool,
 
+    /// (bool) hide numbers when displaying the stack
+    #[default_value(false)]
+    pub stack_hide_numbers: bool,
+
     /// (string) separator between stack numbers and paths
     #[default_value("' - '")]
     pub stack_separator: String,

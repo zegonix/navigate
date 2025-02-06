@@ -85,7 +85,9 @@ fn main() -> Result<()> {
 }
 
 fn handle_push(args: &PushArgs, config: &Config, stack: &mut Stack, output: &mut Output) -> Result<()> {
+    // paths arguments starting with `=` are interpreted as stack entry number
     const PREFIX: char = '=';
+
     let mut path_string = match args.path.clone() {
         Some(value) => value,
         None => {
@@ -110,6 +112,11 @@ fn handle_push(args: &PushArgs, config: &Config, stack: &mut Stack, output: &mut
             Err(_) => return Err(Error::other("-- failed to create PathBuf from argument")),
         }
     };
+    if let Some(true) = args.show_stack {
+        output.push_info(&stack.to_formatted_string(&config)?);
+    } else if config.general.show_stack_on_push {
+        output.push_info(&stack.to_formatted_string(&config)?);
+    }
     push_path(&path, stack, config, output)?;
     Ok(())
 }
@@ -124,7 +131,9 @@ fn handle_pop(args: &PopArgs, config: &Config, stack: &mut Stack, output: &mut O
         num = Some(*n);
     }
     let path = stack.pop_entry(num)?;
-    if config.general.show_stack_on_push {
+    if let Some(true) = args.show_stack {
+        output.push_info(&stack.to_formatted_string(config)?);
+    } else if config.general.show_stack_on_push {
         output.push_info(&stack.to_formatted_string(config)?);
     }
     output.push_command(&format!("cd -- {}", match path.to_str() {
@@ -223,9 +232,6 @@ fn push_path(path: &Path, stack: &mut Stack, config: &Config, output: &mut Outpu
             Some(value) => value,
             None => return Err(Error::other("-- failed to print provided path as string")),
         }));
-    }
-    if config.general.show_stack_on_push {
-        output.push_info(&stack.to_formatted_string(&config)?);
     }
     Ok(())
 }

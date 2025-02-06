@@ -6,10 +6,10 @@
 - [x] config file
   - [x] implement procedural macro for config
     - [x] .. to parse config
-    - [ ] .. to write default config
+    - [x] .. to write default config
     - [x] .. ignore comments in config file
   - [x] parse config file
-  - [ ] apply config -- partially more done than before :)
+  - [x] apply config -- partially more done than before :)
     - [x] `show-bookmarks-on-book`
   - [x] setting for separator string when displaying stack/bookmarks
   - [x] color option for punctuation (mostly '/')
@@ -20,3 +20,4 @@
 - [x] change config file extension to `.toml`
 - [x] add bash completions
 - [x] option to show home directory as '~'
+- [x] apply arguments or delete them..

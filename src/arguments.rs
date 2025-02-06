@@ -71,10 +71,6 @@ pub struct StackArgs {
     #[arg(short = 'n', long)]
     pub hide_numbers: Option<bool>,
 
-    /// show n entries
-    #[arg(short, long = "lines")]
-    pub lines: Option<u32>,
-
     /// stack subcommand
     #[command(subcommand)]
     pub stack_action: Option<StackAction>,

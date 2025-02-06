@@ -61,7 +61,9 @@ impl Stack {
                     path = path.replace(&home, "~");
                 }
                 path = path.replace('/', &format!("{}{}/{}{}", RESET_SEQ, config.styles.stack_punct_style, RESET_SEQ, config.styles.stack_path_style));
-                if config.format.align_separators {
+                if config.format.stack_hide_numbers {
+                    buffer.push_str(&format!("{}\n", path));
+                } else if config.format.align_separators {
                     buffer.push_str(&format!("{}{}{}{}\n", number, padding, separator, path));
                 } else {
                     buffer.push_str(&format!("{}{}{}{}\n", number, separator, padding, path));
