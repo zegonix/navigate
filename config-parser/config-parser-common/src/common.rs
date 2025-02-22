@@ -58,7 +58,7 @@ pub fn parse_config_file(input: &String) -> (ConfigMap, Vec<String>) {
             }
         } else {
             // check for config
-            let mut tokens: Vec<&str> = line.split('=').map(|entry| entry.trim()).collect();
+            let mut tokens: Vec<&str> = line.splitn(2, '=').map(|entry| entry.trim()).collect();
             tokens.retain(|entry| !entry.is_empty());
             // check for valid input
             if tokens.len() != 2 {
@@ -76,7 +76,7 @@ pub fn parse_config_file(input: &String) -> (ConfigMap, Vec<String>) {
     (config, messages)
 }
 
-/// searchs for the first `#` not contained within a string
+/// searches for the first `#` not contained within a string
 /// and drops the rest of the line
 pub fn remove_inline_comment(line: &str) -> String {
     let mut single_quotes: bool = false;
