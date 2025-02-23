@@ -4,7 +4,6 @@ mod bookmarks;
 mod stack;
 mod output;
 mod util;
-mod debug;
 
 use arguments::*;
 use clap::Parser;
@@ -192,7 +191,7 @@ fn list_bookmarks(config: &Config, bookmarks: &mut Bookmarks, output: &mut Outpu
 }
 
 fn add_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookmarks, output: &mut Output) -> Result<()> {
-    let path = match args.path.clone() {
+    let mut path = match args.path.clone() {
         Some(value) => value,
         None => return Err(Error::other("-- missing path argument")),
     };
@@ -201,7 +200,10 @@ fn add_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookma
     if config.general.show_books_on_bookmark {
         output.push_info(&bookmarks.to_formatted_string(config)?);
     } else {
-        output.push_info(&format!("added bookmark `{}{}{}`.", generate_style_sequence(Some(STYLES.set.bold), None, None), args.name, RESET_SEQ));
+        _ = to_rooted(&mut path);
+        output.push_info(&format!("added bookmark `{}{}{} = {}{}{}`.",
+            generate_style_sequence(Some(STYLES.set.bold), None, None), args.name, RESET_SEQ,
+            generate_style_sequence(Some(STYLES.set.italic), None, None), path.to_str().unwrap(), RESET_SEQ));
     }
 
     Ok(())
@@ -219,7 +221,7 @@ fn remove_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Boo
 }
 
 /// push path to stack and print command to navigate to provided path
-fn push_path(path: &Path, stack: &mut Stack, config: &Config, output: &mut Output) -> Result<()> {
+fn push_path(path: &Path, stack: &mut Stack, _config: &Config, output: &mut Output) -> Result<()> {
     let mut path = path.to_path_buf();
     let mut current_path: PathBuf = current_dir()?;
     to_rooted(&mut path)?;

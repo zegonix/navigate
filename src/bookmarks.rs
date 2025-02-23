@@ -9,7 +9,7 @@ use std::str::FromStr;
 use dirs::{config_dir, home_dir};
 
 use super::{config::*, util::to_rooted};
-use config_parser::{apply_format, make_padding_string, RESET_SEQ};
+use config_parser::{apply_format, generate_style_sequence, make_padding_string, RESET_SEQ, STYLES};
 
 #[derive(Debug, Clone)]
 pub struct Bookmarks {
@@ -72,6 +72,9 @@ impl Bookmarks {
     pub fn add_bookmark(&mut self, name: &String, path: &PathBuf) -> Result<()> {
         let mut path = path.to_path_buf();
         to_rooted(&mut path)?;
+        if self.bookmarks.contains_key(name) {
+            return Err(Error::other(format!("-- bookmark with name `{name}` already exists")));
+        }
         if !path.is_dir() {
             return Err(Error::other(
                 "-- provided path argument does not point to a valid directory",
