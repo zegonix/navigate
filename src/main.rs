@@ -195,6 +195,9 @@ fn add_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookma
         Some(value) => value,
         None => return Err(Error::other("-- missing path argument")),
     };
+    if args.name == "add" || args.name == "remove" {
+        return Err(Error::other("-- `add` & `remove` are subcommands and cant be used as bookmarknames"));
+    }
     bookmarks.add_bookmark(&args.name, &path)?;
 
     if config.general.show_books_on_bookmark {
