@@ -42,7 +42,8 @@ pub struct PushArgs {
     pub show_stack: Option<bool>,
 
     /// change to <path>
-    pub path: Option<String>,
+    #[arg(num_args = 0..)]
+    pub path: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -113,7 +114,8 @@ pub struct BookmarkSubArgs {
     pub name: String,
 
     /// path of bookmark to add
-    pub path: Option<PathBuf>,
+    #[arg(num_args = 0..)]
+    pub path: Vec<String>,
 }
 
 #[derive(Debug, Clone, Args)]

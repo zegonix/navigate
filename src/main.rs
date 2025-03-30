@@ -88,7 +88,7 @@ fn handle_push(args: &PushArgs, config: &Config, stack: &mut Stack, output: &mut
     const PREFIX: char = '=';
 
     let mut path_string = match args.path.clone() {
-        Some(value) => value,
+        Some(value) => value.join(" "),
         None => {
             String::new()
         }
@@ -191,9 +191,9 @@ fn list_bookmarks(config: &Config, bookmarks: &mut Bookmarks, output: &mut Outpu
 }
 
 fn add_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookmarks, output: &mut Output) -> Result<()> {
-    let mut path = match args.path.clone() {
-        Some(value) => value,
-        None => return Err(Error::other("-- missing path argument")),
+    let mut path : PathBuf = match PathBuf::from_str(&args.path.join(" ")) {
+        Ok(value) => value,
+        Err(error) => return Err(Error::other(error.to_string())),
     };
     bookmarks.add_bookmark(&args.name, &path)?;
 
@@ -230,7 +230,7 @@ fn push_path(path: &Path, stack: &mut Stack, _config: &Config, output: &mut Outp
         return Err(Error::other("-- invalid path argument"));
     } else if !(path == current_path) {
         stack.push_entry(&current_path)?;
-        output.push_command(&format!("cd -- {}", match path.canonicalize()?.to_str() {
+        output.push_command(&format!("cd -- '{}'", match path.canonicalize()?.to_str() {
             Some(value) => value,
             None => return Err(Error::other("-- failed to print provided path as string")),
         }));
