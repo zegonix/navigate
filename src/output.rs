@@ -1,5 +1,7 @@
 #![allow(unused)]
 
+use clap::builder::EnumValueParser;
+
 use super::config::*;
 
 use std::backtrace::Backtrace;
@@ -56,7 +58,13 @@ impl Output {
 
     /// format and print styled output
     /// NOTE - this will execute any commands held by `command`
-    pub fn print_output(&self, config: &Config) {
+    pub fn print_output(&self, config: Option<&Config>) {
+        let default = Config::default();
+        let config = if let Some(value) = config {
+            value
+        } else {
+            &default
+        };
         let mut info: String = self.info.iter().map(|entry| format!("echo '{}'", entry)).collect::<Vec<String>>().join(" && ");
         let mut warning: String = self.warning.iter().map(|entry| format!("echo '{}'", entry)).collect::<Vec<String>>().join(" && ");
         let mut error: String = self.error.iter().map(|entry| format!("echo '{}'", entry)).collect::<Vec<String>>().join(" && ");

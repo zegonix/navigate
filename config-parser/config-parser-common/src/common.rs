@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::{collections::HashMap, ops::IndexMut};
+use std::collections::HashMap;
 
 /// Holds config, value is either a `String` or a nested `ConfigMap`
 pub type ConfigMap = HashMap<String, ConfigElement>;
@@ -13,6 +13,8 @@ pub enum ConfigElement {
     Nested(ConfigMap),
 }
 
+/// parse toml'ish file into a structure (`ConfigMap`)
+/// as an intermediate step to parsing the configuration
 pub fn parse_config_file(input: &String) -> (ConfigMap, Vec<String>) {
     let mut config = ConfigMap::new();
     let mut pointer: &mut ConfigMap = &mut config;

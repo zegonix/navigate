@@ -129,9 +129,7 @@ impl Config {
         let mut config_file = match config_dir() {
             Some(value) => value,
             None => {
-                return Err(Error::other(
-                    "-- failed to retrieve configuration directory",
-                ))
+                return Err(Error::other("-- failed to retrieve configuration directory"))
             }
         };
         // expand path to configuration file and default configuration file
@@ -143,7 +141,7 @@ impl Config {
         if !default_file.is_file() {
             let mut default_string = Self::DEFAULT_FILE_HEADER.to_string();
             default_string.push_str(&config.to_string());
-            _ = fs::write(default_file, default_string);
+            _ = fs::write(&default_file, default_string);
         }
 
         // parse configuration file and populate config struct
@@ -154,6 +152,13 @@ impl Config {
                 Err(error) => return Err(error),
             };
             _ = config.parse_from_string(&config_str);
+        } else {
+            let default_config = match fs::read_to_string(&default_file) {
+                Ok(value) => value,
+                Err(error) => return Err(error),
+            };
+            _ = fs::write(&config_file, &default_config);
+            _ = config.parse_from_string(&default_config);
         }
 
         if styles_as_ansi_sequences {

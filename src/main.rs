@@ -27,7 +27,8 @@ fn main() -> Result<()> {
         Err(error) => {
             // config object is not ready at this point so the style
             // has to be created by hand
-            print!("echo -e '{}{}{}' && false", generate_style_sequence(None, Some(COLORS.fg.red), None), error, RESET_SEQ);
+            output.push_error(&error.to_string());
+            output.print_output(None);
             return Ok(())
         }
     };
@@ -45,7 +46,7 @@ fn main() -> Result<()> {
                     output.push_error(&error.to_string());
                 },
             }
-            output.print_output(&config);
+            output.print_output(Some(&config));
             return Ok(());
         }
     };
@@ -53,7 +54,7 @@ fn main() -> Result<()> {
         Ok(value) => value,
         Err(error) => {
             output.push_error(&error.to_string());
-            output.print_output(&config);
+            output.print_output(Some(&config));
             return Ok(());
         }
     };
@@ -78,7 +79,7 @@ fn main() -> Result<()> {
     }
 
     // print output and command
-    output.print_output(&config);
+    output.print_output(Some(&config));
 
     Ok(())
 }
