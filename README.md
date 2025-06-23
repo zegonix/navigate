@@ -44,3 +44,30 @@ Style settings accept styles and one color in the following formats:
 
 > *NOTE*: The styles and colors are applied as ansi escape sequences and I do not know a terminal which implements all sequences.
 
+
+# todos
+
+- [x] replace `expect` statements in 'stack.rs' with actual error handling
+- [x] option to pop several entries at a time and option to pop the entire stack
+- [x] drop stack
+- [x] config file
+  - [x] implement procedural macro for config
+    - [x] .. to parse config
+    - [x] .. to write default config
+    - [x] .. ignore comments in config file
+  - [x] parse config file
+  - [x] apply config -- partially more done than before :)
+    - [x] `show-bookmarks-on-book`
+  - [x] setting for separator string when displaying stack/bookmarks
+  - [x] color option for punctuation (mostly '/')
+- [x] bookmarks
+  - [x] do not resolve links in bookmarks
+  - [ ] option to show invalid paths
+    - [ ] style option for invalid paths
+  - [ ] option & subcommand to remove invalid paths
+- [x] push <number> to push path in stack
+- [x] write documentation
+- [x] change config file extension to `.toml`
+- [x] add bash completions
+- [x] option to show home directory as '~'
+- [x] apply arguments or delete them..
