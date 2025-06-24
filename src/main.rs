@@ -75,7 +75,6 @@ fn main() -> Result<()> {
 
     if res.is_err() {
         output.push_error(&res.unwrap_err().to_string());
-        output.push_command(&"false".to_owned());
     }
 
     // print output and command
@@ -146,7 +145,7 @@ fn handle_pop(args: &PopArgs, config: &Config, stack: &mut Stack, output: &mut O
 fn handle_stack(args: &StackArgs, config: &Config, stack: &mut Stack, output: &mut Output) -> Result<()> {
     if args.stack_action.is_some() {
         match args.stack_action.clone().unwrap() {
-            StackAction::clear(_) => {
+            StackAction::clear => {
                 stack.clear_stack()?;
                 output.push_info(&"stack cleared.".to_owned());
                 return Ok(());
@@ -161,10 +160,10 @@ fn handle_stack(args: &StackArgs, config: &Config, stack: &mut Stack, output: &m
 fn handle_bookmark(args: &BookmarkArgs, config: &Config, bookmarks: &mut Bookmarks, stack: &mut Stack, output: &mut Output) -> Result<()> {
     if let Some(action) = &args.bookmark_action {
         match action {
-            BookmarkAction::list(_) => list_bookmarks(config, bookmarks, output)?,
+            BookmarkAction::list => list_bookmarks(config, bookmarks, output)?,
             BookmarkAction::add(args) => add_bookmarks(args, config, bookmarks, output)?,
             BookmarkAction::remove(args) => remove_bookmarks(args, config, bookmarks, output)?,
-            BookmarkAction::completions(_) => println!("echo '{}'", bookmarks.get_bookmarknames()),
+            BookmarkAction::completions => println!("echo '{}'", bookmarks.get_bookmarknames()),
         };
     } else if args.name.is_some() { // handle `change to bookmark`
         let path = bookmarks.get_path_by_name(args.name.as_ref().unwrap())?;

@@ -1,6 +1,7 @@
 #![allow(unused)]
 
 use clap::builder::EnumValueParser;
+use config_parser::RESET_SEQ;
 
 use super::config::*;
 
@@ -58,13 +59,18 @@ impl Output {
 
     /// format and print styled output
     /// NOTE - this will execute any commands held by `command`
-    pub fn print_output(&self, config: Option<&Config>) {
+    pub fn print_output(&mut self, config: Option<&Config>) {
         let default = Config::default();
         let config = if let Some(value) = config {
             value
         } else {
             &default
         };
+
+        if !self.error.is_empty() {
+            self.push_command(&"false".to_owned());
+        }
+
         let mut info: String = self.info.iter().map(|entry| format!("echo '{}'", entry)).collect::<Vec<String>>().join(" && ");
         let mut warning: String = self.warning.iter().map(|entry| format!("echo '{}'", entry)).collect::<Vec<String>>().join(" && ");
         let mut error: String = self.error.iter().map(|entry| format!("echo '{}'", entry)).collect::<Vec<String>>().join(" && ");

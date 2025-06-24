@@ -79,7 +79,7 @@ pub struct StackArgs {
 #[derive(Debug, Clone, Subcommand)]
 pub enum StackAction {
     /// clear stack
-    clear(EmptyArgs),
+    clear,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -95,7 +95,7 @@ pub struct BookmarkArgs {
 #[derive(Debug, Clone, Subcommand)]
 pub enum BookmarkAction {
     /// list all bookmarks
-    list(EmptyArgs),
+    list,
 
     /// add a bookmark with `book add <name> <path>`
     add(BookmarkSubArgs),
@@ -104,7 +104,7 @@ pub enum BookmarkAction {
     remove(BookmarkSubArgs),
 
     /// get bookmarknames for shell completions
-    completions(EmptyArgs),
+    completions,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -123,7 +123,3 @@ pub struct ConfigArgs {
     #[arg(short, long)]
     pub convert: Option<bool>,
 }
-
-/// empty struct for subcommands with no arguments
-#[derive(Debug, Clone, Args)]
-pub struct EmptyArgs {}
