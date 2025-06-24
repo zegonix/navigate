@@ -62,7 +62,7 @@ pub fn gen_to_ansi_sequences(fields: &Punctuated<Field, Comma>) -> TokenStream {
                 match attr_name.first() {
                     Some(value) => if value.ident == "style_config" {
                         conversions.extend(quote! {
-                            self.#name = match config_parser::parse_style(&self.#name) {
+                            self.#name = match config_parser::parse_ansi_set(&self.#name) {
                                 Ok(value) => value,
                                 Err(_) => return Err(std::io::Error::other(format!("failed to convert '{}' to ansi escape sequence", self.#name))),
                             };

@@ -105,8 +105,16 @@ pub enum ColorContext {
 }
 
 /// prepends input with style string and appends the reset sequence at the end
-pub fn apply_format(input: &str, style: &str) -> String {
-    format!("{}{}{}", style, input, RESET_SEQ)
+pub fn apply_format(input: &String, style: &String) -> Result<String> {
+    let style_set: String = match parse_ansi_set(style) {
+        Ok(value) => value,
+        Err(error) => return Err(error),
+    };
+    let style_reset: String = match parse_ansi_reset(style) {
+        Ok(value) => value,
+        Err(error) => return Err(error),
+    };
+    Ok(format!("{}{}{}", style_set, input, style_reset))
 }
 
 /// generates a common style sequence of format
@@ -185,11 +193,11 @@ pub fn make_padding_string(len: usize) -> String {
     String::from_utf8(vec![b' '; len]).unwrap()
 }
 
-/// convert color setting to ansi escape sequence
+/// convert color setting to ansi escape sequence to set style
 /// input format is a quoted string (either double or single)
 /// the style can be a combination of **one** color and
 /// one or more style options (bold, italic, underlined, strikethrough)
-pub fn parse_style(arg: &String) -> Result<String> {
+pub fn parse_ansi_set(arg: &String) -> Result<String> {
     let mut colors: Vec<String> = Vec::<String>::new();
     let mut styles: Vec<String> = Vec::<String>::new();
 
@@ -236,6 +244,66 @@ pub fn parse_style(arg: &String) -> Result<String> {
         };
 
     };
+
+    if colors.len() > 1 {
+        return Err(Error::other(format!("-- too many colors found in setting <{}>", arg)));
+    }
+    if !colors.is_empty() {
+        styles.push(colors.pop().unwrap());
+    }
+    Ok(styles.join(""))
+}
+
+/// convert color setting to ansi escape sequence to reset style
+/// input format is a quoted string (either double or single)
+/// the style can be a combination of **one** color and
+/// one or more style options (bold, italic, underlined, strikethrough)
+pub fn parse_ansi_reset(arg: &String) -> Result<String> {
+    let mut colors: Vec<String> = Vec::<String>::new();
+    let mut styles: Vec<String> = Vec::<String>::new();
+
+    // separate style options
+    let mut tokens: Vec<String> = arg.split([' ', ',', '\"', '\'']).map(|entry| entry.trim().to_lowercase()).collect();
+    tokens.retain(|entry| !entry.is_empty());
+
+    // parse options
+    for option in tokens {
+        // parse numbered colors
+        if let Ok(_) = parse_numbered_color(&option) {
+            colors.push(generate_style_sequence(None, Some(COLORS.fg.default), None));
+            continue;
+        }
+
+        // parse rgb colors
+        if let Ok(_) = parse_rgb_color(&option) {
+            colors.push(generate_style_sequence(None, Some(COLORS.fg.default), None));
+            continue;
+        }
+
+        // parse styles and named colors
+        match option.as_str() {
+            // styles
+            "bold" => styles.push(generate_style_sequence(Some(STYLES.reset.bold), None, None)),
+            "dim" => styles.push(generate_style_sequence(Some(STYLES.reset.dim), None, None)),
+            "italic" => styles.push(generate_style_sequence(Some(STYLES.reset.italic), None, None)),
+            "underlined" => styles.push(generate_style_sequence(Some(STYLES.reset.underlined), None, None)),
+            "blinking" => styles.push(generate_style_sequence(Some(STYLES.reset.blinking), None, None)),
+            "reversed" => styles.push(generate_style_sequence(Some(STYLES.reset.reversed), None, None)),
+            "invisible" => styles.push(generate_style_sequence(Some(STYLES.reset.invisible), None, None)),
+            "strikethrough" => styles.push(generate_style_sequence(Some(STYLES.reset.strikethrough), None, None)),
+            // named colors
+            "black" => colors.push(generate_style_sequence(None, Some(COLORS.fg.default), None)),
+            "red" => colors.push(generate_style_sequence(None, Some(COLORS.fg.default), None)),
+            "green" => colors.push(generate_style_sequence(None, Some(COLORS.fg.default), None)),
+            "yellow" => colors.push(generate_style_sequence(None, Some(COLORS.fg.default), None)),
+            "blue" => colors.push(generate_style_sequence(None, Some(COLORS.fg.default), None)),
+            "magenta" => colors.push(generate_style_sequence(None, Some(COLORS.fg.default), None)),
+            "cyan" => colors.push(generate_style_sequence(None, Some(COLORS.fg.default), None)),
+            "white" => colors.push(generate_style_sequence(None, Some(COLORS.fg.default), None)),
+            "default" => colors.push(generate_style_sequence(None, Some(COLORS.fg.default), None)),
+            _ => return Err(Error::other(format!("-- could not parse style token `{}` in config file", option))),
+        };
+    }
 
     if colors.len() > 1 {
         return Err(Error::other(format!("-- too many colors found in setting <{}>", arg)));

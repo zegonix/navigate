@@ -9,7 +9,7 @@ use std::str::FromStr;
 use dirs::{config_dir, home_dir};
 
 use super::{config::*, util::to_rooted};
-use config_parser::{apply_format, generate_style_sequence, make_padding_string, RESET_SEQ, STYLES};
+use config_parser::{apply_format, make_padding_string};
 
 #[derive(Debug, Clone)]
 pub struct Bookmarks {
@@ -49,9 +49,11 @@ impl Bookmarks {
                 Err(err) => return Err(Error::other(err.to_string())),
             };
             to_rooted(&mut path)?;
-            if !path.is_dir() {
-                continue;
-            }
+
+            // if !path.is_dir() {
+            //     continue;
+            // }
+
             bookmarks.bookmarks.insert(key, path);
         }
         Ok(bookmarks)
@@ -110,17 +112,14 @@ impl Bookmarks {
                 Some(value) => value,
                 None => return Err(Error::other("-- failed to determine maximum bookmark name length")),
             };
-            for (mark, path) in &self.bookmarks {
-                let padding = make_padding_string(max_name_len - mark.len());
-                let name = apply_format(mark, &config.styles.bookmarks_name_style);
-                let separator = apply_format(
-                    &config.format.bookmarks_separator,
-                    &config.styles.bookmarks_seperator_style,
-                );
+            for (raw_name, raw_path) in &self.bookmarks {
+                let padding: String = make_padding_string(max_name_len - raw_name.len());
+                let mut name: String = raw_name.clone();
+                let mut separator: String = config.format.bookmarks_separator.clone();
+                let mut path: String = raw_path.clone().into_os_string().into_string().unwrap();
 
-                let mut path = apply_format(path.to_str().unwrap(), &config.styles.bookmarks_path_style);
                 if config.format.show_home_as_tilde {
-                    let home = match home_dir() {
+                    let home: String = match home_dir() {
                         Some(value) => match value.into_os_string().into_string() {
                             Ok(value) => value,
                             Err(error) => return Err(Error::other(format!("-- failed to conver home directory to string: {}", error.to_str().unwrap()))),
@@ -129,13 +128,30 @@ impl Bookmarks {
                     };
                     path = path.replace(&home, "~");
                 }
-                path = path.replace('/', &format!("{}{}/{}{}", RESET_SEQ, config.styles.bookmarks_punct_style, RESET_SEQ, &config.styles.bookmarks_path_style));
 
-                if config.format.align_separators {
-                    buffer.push_str(&format!("{}{}{}{}\n", name, padding, separator, path));
-                } else {
-                    buffer.push_str(&format!("{}{}{}{}\n", name, separator, padding, path));
+                if raw_path.is_dir() {
+                    let slash: String = apply_format(&"/".to_owned(), &config.styles.bookmarks_punct_style)?;
+                    let mut segments: Vec<String> = path.split('/').map(|element| element.to_owned()).collect();
+                    for element in segments.iter_mut() {
+                        *element = apply_format(&element, &config.styles.bookmarks_path_style)?;
+                    }
+                    path = segments.join(&slash);
+
+                    name = apply_format(&name, &config.styles.bookmarks_name_style)?;
+                    separator = apply_format(&separator, &config.styles.stack_separator_style)?;
                 }
+
+                let mut line: String;
+                if config.format.align_separators {
+                    line = format!("{}{}{}{}\n", name, padding, separator, path);
+                } else {
+                    line = format!("{}{}{}{}\n", name, separator, padding, path);
+                }
+                if !raw_path.is_dir() {
+                    line = apply_format(&line, &config.styles.bookmarks_invalid_style)?;
+                }
+
+                buffer.push_str(&line);
             }
         }
         Ok(buffer)

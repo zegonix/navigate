@@ -5,7 +5,6 @@ use std::fs::File;
 use std::io::{Error, Result};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use config_parser::RESET_SEQ;
 use sysinfo::{Pid, System};
 use dirs::home_dir;
 
@@ -41,17 +40,15 @@ impl Stack {
             buffer.push_str("-- the stack is empty");
         } else {
             // print stack to string
-            let max_num_len = self.stack.len().to_string().len();
+            let max_num_len: usize = self.stack.len().to_string().len();
             for (n, item) in self.stack.iter().rev().enumerate() {
-                let padding = make_padding_string(max_num_len - n.to_string().len());
-                let number = apply_format(&n.to_string(), &config.styles.stack_number_style);
-                let separator = apply_format(
-                    &config.format.stack_separator,
-                    &config.styles.stack_separator_style,
-                );
-                let mut path = apply_format(item.to_str().unwrap(), &config.styles.stack_path_style);
+                let padding: String = make_padding_string(max_num_len - n.to_string().len());
+                let mut number: String = n.to_string();
+                let mut separator: String = config.format.stack_separator.clone();
+                let mut path: String = item.clone().into_os_string().into_string().unwrap();
+
                 if config.format.show_home_as_tilde {
-                    let home = match home_dir() {
+                    let home: String = match home_dir() {
                         Some(value) => match value.into_os_string().into_string() {
                             Ok(value) => value,
                             Err(error) => return Err(Error::other(format!("-- failed to conver home directory to string: {}", error.to_str().unwrap()))),
@@ -60,14 +57,32 @@ impl Stack {
                     };
                     path = path.replace(&home, "~");
                 }
-                path = path.replace('/', &format!("{}{}/{}{}", RESET_SEQ, config.styles.stack_punct_style, RESET_SEQ, config.styles.stack_path_style));
-                if config.format.stack_hide_numbers {
-                    buffer.push_str(&format!("{}\n", path));
-                } else if config.format.align_separators {
-                    buffer.push_str(&format!("{}{}{}{}\n", number, padding, separator, path));
-                } else {
-                    buffer.push_str(&format!("{}{}{}{}\n", number, separator, padding, path));
+
+                if item.is_dir() {
+                    let slash: String = apply_format(&"/".to_owned(), &config.styles.stack_punct_style)?;
+                    let mut segments: Vec<String> = path.split('/').map(|element| element.to_owned()).collect();
+                    for element in segments.iter_mut() {
+                        *element = apply_format(&element, &config.styles.stack_path_style)?;
+                    }
+                    path = segments.join(&slash);
+
+                    number = apply_format(&number, &config.styles.stack_number_style)?;
+                    separator = apply_format(&separator, &config.styles.stack_separator_style)?;
                 }
+
+                let mut line: String;
+                if config.format.stack_hide_numbers {
+                    line = format!("{}\n", path);
+                } else if config.format.align_separators {
+                    line = format!("{}{}{}{}\n", number, padding, separator, path);
+                } else {
+                    line = format!("{}{}{}{}\n", number, separator, padding, path);
+                }
+                if !item.is_dir() {
+                    line = apply_format(&line, &config.styles.stack_invalid_style)?;
+                }
+
+                buffer.push_str(&line);
             }
         }
         Ok(buffer)

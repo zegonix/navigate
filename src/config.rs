@@ -5,7 +5,12 @@
 
 use dirs::config_dir;
 use std::fs;
-use std::io::{Error, Result};
+use std::{
+    io::{
+        Error, Result
+    },
+    path::PathBuf,
+};
 use config_parser::*;
 
 #[derive(Debug, Clone, Default, ConfigParser)]
@@ -28,9 +33,21 @@ pub struct GeneralSettings {
     #[default_value(false)]
     pub show_stack_on_pop: bool,
 
-    /// (bool) show book marks when adding, removing or changing to a bookmark
+    /// (bool) show invalid stack entries
     #[default_value(false)]
-    pub show_books_on_bookmark: bool,
+    pub show_invalid_stack_entries: bool,
+
+    /// (bool) show bookmarks when adding, removing or changing to a bookmark
+    #[default_value(false)]
+    pub show_entries_on_bookmark: bool,
+
+    /// (bool) show invalid bookmarks when displaying bookmarks
+    #[default_value(true)]
+    pub show_invalid_bookmarks: bool,
+
+    /// (bool) remove invalid bookmarks on call
+    #[default_value(false)]
+    pub cleanup_bookmarks: bool,
 }
 
 #[derive(Debug, Clone, Default, ConfigParser)]
@@ -88,6 +105,11 @@ pub struct StyleSettings {
     #[default_value("'magenta'")]
     pub stack_punct_style: String,
 
+    /// (string) style applied to punctuation (i.e. '/') when displaying the stack
+    #[style_config]
+    #[default_value("'default, strikethrough'")]
+    pub stack_invalid_style: String,
+
     /// (string) style applied to bookmark names when displaying the bookmarks
     #[style_config]
     #[default_value("'default'")]
@@ -107,6 +129,11 @@ pub struct StyleSettings {
     #[style_config]
     #[default_value("'magenta'")]
     pub bookmarks_punct_style: String,
+
+    /// (string) style applied to punctuation (i.e. '/') when displaying the bookmarks
+    #[style_config]
+    #[default_value("'strikethrough'")]
+    pub bookmarks_invalid_style: String,
 }
 
 impl Config {
@@ -123,23 +150,30 @@ impl Config {
 ";
 
     /// generates and populates a new instance of Config
-    pub fn new(styles_as_ansi_sequences: bool) -> Result<Self> {
+    pub fn new() -> Result<Self> {
         let mut config: Config = Self::default();
         // get configuration directory
-        let mut config_file = match config_dir() {
+        let mut config_file: PathBuf = match config_dir() {
             Some(value) => value,
             None => {
                 return Err(Error::other("-- failed to retrieve configuration directory"))
             }
         };
+        config_file.push(Self::CONFIG_DIRECTORY_NAME);
+        if !config_file.is_dir() {
+            if fs::create_dir(&config_file).is_err() {
+                return Err(Error::other("-- failed to create a directory for the configuration files"));
+            }
+        }
+
         // expand path to configuration file and default configuration file
         let mut default_file = config_file.clone();
-        default_file.push(format!("{}/{}", Self::CONFIG_DIRECTORY_NAME, Self::DEFAULT_CONFIG_NAME));
-        config_file.push(format!("{}/{}", Self::CONFIG_DIRECTORY_NAME, Self::CONFIG_FILE_NAME));
+        default_file.push(Self::DEFAULT_CONFIG_NAME);
+        config_file.push(Self::CONFIG_FILE_NAME);
 
         // write default configuration file if it does not exist
         if !default_file.is_file() {
-            let mut default_string = Self::DEFAULT_FILE_HEADER.to_string();
+            let mut default_string = Self::DEFAULT_FILE_HEADER.to_owned();
             default_string.push_str(&config.to_string());
             _ = fs::write(&default_file, default_string);
         }
@@ -159,10 +193,6 @@ impl Config {
             };
             _ = fs::write(&config_file, &default_config);
             _ = config.parse_from_string(&default_config);
-        }
-
-        if styles_as_ansi_sequences {
-            config.to_ansi_sequences()?;
         }
 
         Ok(config)

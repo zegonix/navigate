@@ -2,7 +2,6 @@
 #![allow(non_camel_case_types)]
 
 use clap::{Args, Parser, Subcommand};
-use std::path::PathBuf;
 
 /// implements stack for cd wrapper script
 #[derive(Parser, Debug)]
@@ -32,7 +31,7 @@ pub enum Action {
     bookmark(BookmarkArgs),
 
     /// display current configuartion (mostly for debugging)
-    configuration(ConfigArgs),
+    configuration,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -105,7 +104,7 @@ pub enum BookmarkAction {
     remove(BookmarkSubArgs),
 
     /// get bookmarknames for shell completions
-    names(EmptyArgs),
+    completions(EmptyArgs),
 }
 
 #[derive(Debug, Clone, Args)]

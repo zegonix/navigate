@@ -22,7 +22,7 @@ use std::str::FromStr;
 
 fn main() -> Result<()> {
     let mut output = Output::new();
-    let config = match Config::new(true) {
+    let config = match Config::new() {
         Ok(value) => value,
         Err(error) => {
             // config object is not ready at this point so the style
@@ -70,7 +70,7 @@ fn main() -> Result<()> {
         Action::pop(pop_args) => handle_pop(&pop_args, &config, &mut stack, &mut output),
         Action::stack(stack_args) => handle_stack(&stack_args, &config, &mut stack, &mut output),
         Action::bookmark(bookmark_args) => handle_bookmark(&bookmark_args, &config, &mut bookmarks, &mut stack, &mut output),
-        Action::configuration(config_args) => handle_config(&config_args, &mut output),
+        Action::configuration => handle_config(&mut output),
     };
 
     if res.is_err() {
@@ -159,13 +159,12 @@ fn handle_stack(args: &StackArgs, config: &Config, stack: &mut Stack, output: &m
 }
 
 fn handle_bookmark(args: &BookmarkArgs, config: &Config, bookmarks: &mut Bookmarks, stack: &mut Stack, output: &mut Output) -> Result<()> {
-    // if args.bookmark_action.is_some() {
     if let Some(action) = &args.bookmark_action {
         match action {
             BookmarkAction::list(_) => list_bookmarks(config, bookmarks, output)?,
             BookmarkAction::add(args) => add_bookmarks(args, config, bookmarks, output)?,
             BookmarkAction::remove(args) => remove_bookmarks(args, config, bookmarks, output)?,
-            BookmarkAction::names(_) => println!("echo '{}'", bookmarks.get_bookmarknames()),
+            BookmarkAction::completions(_) => println!("echo '{}'", bookmarks.get_bookmarknames()),
         };
     } else if args.name.is_some() { // handle `change to bookmark`
         let path = bookmarks.get_path_by_name(args.name.as_ref().unwrap())?;
@@ -176,12 +175,8 @@ fn handle_bookmark(args: &BookmarkArgs, config: &Config, bookmarks: &mut Bookmar
     Ok(())
 }
 
-fn handle_config(args: &ConfigArgs, output: &mut Output) -> Result<()> {
-    let convert: bool = match args.convert {
-        Some(value) => value,
-        None => false,
-    };
-    let config = Config::new(convert);
+fn handle_config(output: &mut Output) -> Result<()> {
+    let config = Config::new();
     output.push_info(&format!("config = {:#?}", config));
     Ok(())
 }
@@ -201,7 +196,7 @@ fn add_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookma
     }
     bookmarks.add_bookmark(&args.name, &path)?;
 
-    if config.general.show_books_on_bookmark {
+    if config.general.show_entries_on_bookmark {
         output.push_info(&bookmarks.to_formatted_string(config)?);
     } else {
         _ = to_rooted(&mut path);
@@ -216,7 +211,7 @@ fn add_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookma
 fn remove_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookmarks, output: &mut Output) -> Result<()> {
     bookmarks.remove_bookmark(&args.name)?;
 
-    if config.general.show_books_on_bookmark {
+    if config.general.show_entries_on_bookmark {
         output.push_info(&bookmarks.to_formatted_string(config)?);
     } else {
         output.push_info(&format!("remove bookmark `{}{}{}`.", generate_style_sequence(Some(STYLES.set.bold), None, None), args.name, RESET_SEQ));
