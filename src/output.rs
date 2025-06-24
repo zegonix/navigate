@@ -1,7 +1,7 @@
 #![allow(unused)]
 
 use clap::builder::EnumValueParser;
-use config_parser::RESET_SEQ;
+use config_parser::apply_format;
 
 use super::config::*;
 
@@ -81,11 +81,11 @@ impl Output {
             output.push(info);
         }
         if !warning.is_empty() {
-            warning = format!("echo '{}' && {}", config.styles.warning_style, warning);
+            warning = format!("echo '{}'", apply_format(&warning, &config.styles.error_style).unwrap());
             output.push(warning);
         }
         if !error.is_empty() {
-            error = format!("echo '{}' && {}", config.styles.error_style, error);
+            error = format!("echo '{}'", apply_format(&error, &config.styles.error_style).unwrap());
             output.push(error);
         }
         if !command.is_empty() {

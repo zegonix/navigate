@@ -158,8 +158,15 @@ impl Bookmarks {
     }
 
     /// get bookmarknames as space separated values in one string (for shell completions)
-    pub fn get_bookmarknames(&self) -> String {
-        let names: Vec<String> = self.bookmarks.keys().cloned().collect();
+    pub fn get_bookmark_names(&self) -> String {
+        let mut copy = self.bookmarks.clone();
+
+        for (name, path) in copy.clone() {
+            if !path.is_dir() {
+                _ = copy.remove(&name);
+            }
+        }
+        let names: Vec<String> = copy.keys().cloned().collect();
         names.join(" ")
     }
 
