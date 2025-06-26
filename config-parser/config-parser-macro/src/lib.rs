@@ -33,7 +33,6 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let assignments: TokenStream = gen_config_assignments(fields, &config_name, &output_name);
     let func_parse_string: TokenStream = gen_parse_from_string(&config_name, &output_name, &assignments);
     let func_parse_map: TokenStream = gen_parse_from_map(&config_name, &output_name, &assignments);
-    let func_to_ansi_sequences: TokenStream = gen_to_ansi_sequences(fields);
     let func_default: TokenStream = gen_default(fields);
     let func_to_string: TokenStream = gen_to_string(fields);
 
@@ -41,7 +40,6 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         impl #name {
             #func_parse_string
             #func_parse_map
-            #func_to_ansi_sequences
             #func_default
             #func_to_string
         }

@@ -110,7 +110,7 @@ pub fn apply_format(input: &String, style: &String) -> Result<String> {
         Ok(value) => value,
         Err(error) => return Err(error),
     };
-    let style_reset: String = match parse_ansi_reset(style) {
+    let style_reset: String = match parse_ansi_unset(style) {
         Ok(value) => value,
         Err(error) => return Err(error),
     };
@@ -258,7 +258,7 @@ pub fn parse_ansi_set(arg: &String) -> Result<String> {
 /// input format is a quoted string (either double or single)
 /// the style can be a combination of **one** color and
 /// one or more style options (bold, italic, underlined, strikethrough)
-pub fn parse_ansi_reset(arg: &String) -> Result<String> {
+pub fn parse_ansi_unset(arg: &String) -> Result<String> {
     let mut colors: Vec<String> = Vec::<String>::new();
     let mut styles: Vec<String> = Vec::<String>::new();
 

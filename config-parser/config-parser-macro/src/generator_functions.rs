@@ -48,43 +48,6 @@ pub fn gen_parse_from_map(config_name: &Ident, output_name: &Ident, assignments:
     }
 }
 
-pub fn gen_to_ansi_sequences(fields: &Punctuated<Field, Comma>) -> TokenStream {
-    let mut conversions: TokenStream = TokenStream::new();
-    'fields: for field in fields.iter() {
-        let attr = &field.attrs;
-        let name = match &field.ident {
-            Some(value) => value,
-            // skip anonymous fields
-            None => continue 'fields,
-        };
-        for attribute in attr {
-            if let Attribute{ meta: Meta::Path( Path{segments: attr_name, ..} ), .. } = attribute {
-                match attr_name.first() {
-                    Some(value) => if value.ident == "style_config" {
-                        conversions.extend(quote! {
-                            self.#name = match config_parser::parse_ansi_set(&self.#name) {
-                                Ok(value) => value,
-                                Err(_) => return Err(std::io::Error::other(format!("failed to convert '{}' to ansi escape sequence", self.#name))),
-                            };
-                        });
-                    } else if value.ident == "nested_config" {
-                        conversions.extend(quote! {
-                            self.#name.to_ansi_sequences()?;
-                        });
-                    },
-                    None => (),
-                }
-            }
-        }
-    };
-    quote!{
-        fn to_ansi_sequences(&mut self) -> std::io::Result<()> {
-            #conversions
-            Ok(())
-        }
-    }
-}
-
 pub fn gen_default(fields: &Punctuated<Field, Comma>) -> TokenStream {
     let mut defaults: TokenStream = TokenStream::new();
     'fields: for field in fields.iter() {

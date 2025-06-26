@@ -1,7 +1,7 @@
 #![allow(unused)]
 
 use clap::builder::EnumValueParser;
-use config_parser::apply_format;
+use config_parser::{apply_format, parse_ansi_set, parse_ansi_unset};
 
 use super::config::*;
 
@@ -71,27 +71,25 @@ impl Output {
             self.push_command(&"false".to_owned());
         }
 
-        let mut info: String = self.info.iter().map(|entry| format!("echo '{}'", entry)).collect::<Vec<String>>().join(" && ");
-        let mut warning: String = self.warning.iter().map(|entry| format!("echo '{}'", entry)).collect::<Vec<String>>().join(" && ");
-        let mut error: String = self.error.iter().map(|entry| format!("echo '{}'", entry)).collect::<Vec<String>>().join(" && ");
-        let mut command: String = self.command.join(" && ");
         let mut output: Vec<String> = Vec::<String>::new();
 
-        if !info.is_empty() {
+        if !self.info.is_empty() {
+            let mut info: String = self.info.iter().map(|entry| format!("echo '{}'", entry)).collect::<Vec<String>>().join(" && ");
             output.push(info);
         }
-        if !warning.is_empty() {
-            warning = format!("echo '{}'", apply_format(&warning, &config.styles.error_style).unwrap());
+        if !self.warning.is_empty() {
+        let mut warning: String = self.warning.iter().map(|entry| apply_format(entry, &config.styles.warning_style).unwrap()).map(|entry| format!("echo '{}'", entry)).collect::<Vec<String>>().join(" && ");
             output.push(warning);
         }
-        if !error.is_empty() {
-            error = format!("echo '{}'", apply_format(&error, &config.styles.error_style).unwrap());
+        if !self.error.is_empty() {
+            let mut error: String = self.error.iter().map(|entry| apply_format(entry, &config.styles.error_style).unwrap()).map(|entry| format!("echo '{}'", entry)).collect::<Vec<String>>().join(" && ");
             output.push(error);
         }
-        if !command.is_empty() {
+        if !self.command.is_empty() {
+            let mut command: String = self.command.join(" && ");
             output.push(command);
         }
 
-        println!("{}", output.join(" && echo && "));
+        println!("{}", output.join(" && "));
     }
 }

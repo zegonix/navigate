@@ -124,7 +124,7 @@ impl Bookmarks {
                             Ok(value) => value,
                             Err(error) => return Err(Error::other(format!("-- failed to conver home directory to string: {}", error.to_str().unwrap()))),
                         },
-                        None => return Err(Error::other("-- `stack_home_as_tilde` = true, but home directory can't be determined")),
+                        None => return Err(Error::other("-- `bookmarks_home_as_tilde` = true, but home directory can't be determined")),
                     };
                     path = path.replace(&home, "~");
                 }
@@ -138,7 +138,7 @@ impl Bookmarks {
                     path = segments.join(&slash);
 
                     name = apply_format(&name, &config.styles.bookmarks_name_style)?;
-                    separator = apply_format(&separator, &config.styles.stack_separator_style)?;
+                    separator = apply_format(&separator, &config.styles.bookmarks_seperator_style)?;
                 }
 
                 let mut line: String;
