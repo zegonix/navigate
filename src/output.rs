@@ -1,7 +1,7 @@
 #![allow(unused)]
 
 use clap::builder::EnumValueParser;
-use config_parser::apply_format;
+use config_parser::{apply_format, parse_ansi_set, parse_ansi_unset};
 
 use super::config::*;
 
@@ -54,7 +54,7 @@ impl Output {
 
     /// push an error to the output pipeline
     pub fn push_error(&mut self, error: &String) {
-        self.error.push(error.to_string());
+        self.warning.push(error.to_string());
     }
 
     /// format and print styled output
@@ -81,17 +81,21 @@ impl Output {
             output.push(info);
         }
         if !warning.is_empty() {
-            warning = format!("echo '{}'", apply_format(&warning, &config.styles.error_style).unwrap());
+            let set = parse_ansi_set(&config.styles.warning_style).unwrap();
+            let unset = parse_ansi_unset(&config.styles.warning_style).unwrap();
+            warning = format!("echo '{}' && {} && echo '{}'",  set, warning, unset);
             output.push(warning);
         }
         if !error.is_empty() {
-            error = format!("echo '{}'", apply_format(&error, &config.styles.error_style).unwrap());
+            let set = parse_ansi_set(&config.styles.error_style).unwrap();
+            let unset = parse_ansi_unset(&config.styles.error_style).unwrap();
+            error = format!("echo '{}' && {} && echo '{}'",  set, error, unset);
             output.push(error);
         }
         if !command.is_empty() {
             output.push(command);
         }
 
-        println!("{}", output.join(" && echo && "));
+        println!("{}", output.join(" && "));
     }
 }
