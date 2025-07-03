@@ -103,6 +103,9 @@ pub enum BookmarkAction {
     /// remove a bookmark by name `book remove <name>`
     remove(BookmarkSubArgs),
 
+    /// remove bookmarks with invalid paths
+    clean,
+
     /// get bookmarknames for shell completions
     completions,
 }

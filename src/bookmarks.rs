@@ -101,6 +101,14 @@ impl Bookmarks {
         Ok(())
     }
 
+    /// 
+    pub fn remove_invalid_paths(&mut self) -> Result<()> {
+        self.bookmarks.retain(|_, path| path.is_dir());
+        self.write_bookmark_file()?;
+
+        Ok(())
+    }
+
     /// formats and prints bookmarks to string
     pub fn to_formatted_string(&self, config: &Config) -> Result<String> {
         let mut buffer = String::new();
