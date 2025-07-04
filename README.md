@@ -67,6 +67,7 @@ Style settings accept styles and one color in the following formats:
   - [x] option to show invalid paths
     - [x] style option for invalid paths
   - [x] subcommand to remove invalid paths
+    - [ ] print deleted bookmarks
 - [x] push <number> to push path in stack
 - [x] write documentation
 - [x] change config file extension to `.toml`
