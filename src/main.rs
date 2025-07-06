@@ -58,7 +58,7 @@ fn main() -> Result<()> {
             return Ok(());
         }
     };
-    let mut stack = match Stack::new(args.pid) {
+    let mut stack = match Stack::new(&config, args.pid) {
         Ok(stack) => stack,
         Err(_) => {
             output.push_error(&"-- failed to build stack".to_string());
@@ -104,7 +104,12 @@ fn handle_push(args: &PushArgs, config: &Config, stack: &mut Stack, output: &mut
             Ok(value) => value,
             Err(_) => return Err(Error::other("-- push : failed to convert path argument to number")),
         };
-        stack.get_entry_by_number(number)?.to_path_buf()
+        let path = stack.get_entry_by_number(number)?.to_path_buf();
+        if config.general.rotate_stack_on_jump_to_entry {
+            stack.rotate_stack(number)?;
+        }
+        _ = stack.pop_entry(None);
+        path
     } else {
         match PathBuf::from_str(&path_string) {
             Ok(value) => value,

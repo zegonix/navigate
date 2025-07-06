@@ -21,13 +21,13 @@ pub struct Stack {
 impl Stack {
     const STACK_FILE_DIRECTORY: &str = "/tmp/navigate/";
 
-    pub fn new(process_id: u32) -> Result<Self> {
+    pub fn new(config: &Config, process_id: u32) -> Result<Self> {
         let mut stack: Stack = Stack {
             pid: process_id,
             path: PathBuf::new(),
             stack: Vec::<PathBuf>::new(),
         };
-        stack.build_stack()?;
+        stack.build_stack(config)?;
 
         Ok(stack)
     }
@@ -138,8 +138,25 @@ impl Stack {
         }
     }
 
+    /// rotate stack so that the <entry_number> is the latest
+    /// entry (first to be popped)
+    pub fn rotate_stack(&mut self, entry_number: usize) -> Result<()> {
+        if 0 == entry_number {
+            return Ok(());
+        } else if self.stack.len() <= entry_number {
+            return Err(Error::other("-- number to rotate is greater than the stacks length"));
+        }
+
+        let mut rotated_stack: Vec<PathBuf> = self.stack.drain(self.stack.len() - entry_number..).collect();
+
+        rotated_stack.extend(self.stack.drain(..));
+        self.stack = rotated_stack;
+
+        Ok(())
+    }
+
     /// clean up dead stack files, parse and build stack
-    fn build_stack(&mut self) -> Result<()> {
+    fn build_stack(&mut self, config: &Config) -> Result<()> {
         let stack_dir: PathBuf = match PathBuf::from_str(Self::STACK_FILE_DIRECTORY) {
             Ok(value) => value,
             Err(_) => {
@@ -187,6 +204,10 @@ impl Stack {
         }
         self.cleanup_stack();
 
+        if config.general.dedup_stack {
+            self.dedup_stack();
+        }
+
         Ok(())
     }
 
@@ -206,6 +227,19 @@ impl Stack {
         if !self.stack.is_empty() {
             self.stack.retain(|entry| entry.is_dir());
         }
+    }
+
+    /// keep only the newest occurence of a path
+    fn dedup_stack(&mut self) {
+        let mut deduped_stack: Vec<PathBuf> = Vec::new();
+        while !self.stack.is_empty() {
+            let entry: PathBuf = self.stack.remove(0);
+            if !self.stack.contains(&entry) {
+                deduped_stack.push(entry);
+            }
+        }
+
+        self.stack = deduped_stack;
     }
 
     /// write stack current stack to file to save it for next execution

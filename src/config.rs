@@ -25,6 +25,14 @@ pub struct Config {
 
 #[derive(Debug, Clone, Default, ConfigParser)]
 pub struct GeneralSettings {
+    /// (bool) delete all older occurences of paths in the stack
+    #[default_value(false)]
+    pub dedup_stack: bool,
+
+    /// (bool) rotate stack to chosen path when jumping to stack entry
+    #[default_value(false)]
+    pub rotate_stack_on_jump_to_entry: bool,
+
     /// (bool) show stack when pushing a path to the stack
     #[default_value(false)]
     pub show_stack_on_push: bool,

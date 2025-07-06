@@ -60,8 +60,8 @@ Style settings accept styles and one color in the following formats:
     - [x] `show-bookmarks-on-book`
   - [x] setting for separator string when displaying stack/bookmarks
   - [x] color option for punctuation (mostly '/')
-  - [ ] option to dedup stack entries
-  - [ ] option for behaviour when jumping to stack entry via `push =<n>`
+  - [x] option to dedup stack entries
+  - [x] option for behaviour when jumping to stack entry via `push =<n>`
 - [x] bookmarks
   - [x] do not resolve links in bookmarks
   - [x] option to show invalid paths
