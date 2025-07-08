@@ -10,10 +10,11 @@ I implemented this program to learn rust (because I was put on a rust project at
 * `push` - save path to the stack and change to specified directory
 * `pop` - pop one, or the specified amount of entries from the stack and move to the oldest one
 * `stack` - display the stack
-* `book` - move to, or add, remove and display bookmarks
+* `book` - move to/add/remove/display bookmarks
 
-Every shell has its own stack, save in the file `/tmp/navigate/<process-id>`.
+Every shell has its own stack, saved in the file `/tmp/navigate/<process-id>`.
 `navigate` checks for and deletes orphaned stack files on execution.
+This program does not run background tasks, all state is stored in temporary or configuration files.
 
 
 ## setup
@@ -21,14 +22,15 @@ Every shell has its own stack, save in the file `/tmp/navigate/<process-id>`.
 `navigate` requires a setup
 1) clone the repository
 1) build crate
-1) add path to executable to shell environment
-1) source setup script `navigate_bash_setup`
+1) add path to executable to shell environment, or copy the executable to a directory in the path variable (e.g. `/usr/local/bin`)
+1) source setup script `navigate_bash_setup` for convenience functions and bash completions
 
 
 ## configuration
 
 The behaviour of `navigate` can be configured in the file `$XDG_CONFIG_HOME/navigate/navigate.toml`.
-*It has the toml extension, but might not implement the full toml specification.*
+
+> *It has the toml extension, but might not implement the full toml specification.*
 
 > `navigate` will check for the file `default.toml` in the configuration directory and create it if not found.
 > It contains all settings with default values and a short explanation.
@@ -36,13 +38,16 @@ The behaviour of `navigate` can be configured in the file `$XDG_CONFIG_HOME/navi
 
 The lines without type and value are categories and need to be defined as toml table (`[table]`) in the configuration file.
 Options are written as `value = key`.
-Style settings accept styles and one color in the following formats:
+Style settings accept styles and one color separated by commas.
+Make sure to wrap the whole string in single or double quotes.
+The following formats are supported:
+
 * **styles**: `bold`, `dim`, `italic`, `underlined`, `blinking`, `reversed`, `invisible`, `strikethrough`
 * **named color**: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`
 * **numbered color**: `16`..`255`
 * **rgb color**: `#rrggbb`
 
-> *NOTE*: The styles and colors are applied as ansi escape sequences and I do not know a terminal which implements all sequences.
+> *NOTE*: The styles and colors are applied as ansi escape sequences and your terminal may not support some of them.
 
 
 # todos
