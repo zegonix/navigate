@@ -89,16 +89,20 @@ impl Bookmarks {
     }
 
     /// removes a the entry with key=name if it exists, then writes the bookmarks file
-    pub fn remove_bookmark(&mut self, name: &String) -> Result<()> {
+    pub fn remove_bookmark(&mut self, name: &String) -> Result<PathBuf> {
+        let path: PathBuf;
         if self.bookmarks.contains_key(name) {
-            _ = self.bookmarks.remove(name);
+            path = match self.bookmarks.remove(name) {
+                Some(path) => path,
+                None => return Err(Error::other("-- those bastards, they lied to me!")),
+            };
             self.write_bookmark_file()?;
         } else {
             return Err(Error::other(
                 "-- bookmark requested to delete does not exist",
             ));
         }
-        Ok(())
+        Ok(path)
     }
 
     /// 

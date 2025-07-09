@@ -71,8 +71,9 @@ The following formats are supported:
   - [x] do not resolve links in bookmarks
   - [x] option to show invalid paths
     - [x] style option for invalid paths
-  - [x] subcommand to remove invalid paths
-    - [ ] print deleted bookmarks
+    - [x] subcommand to remove invalid paths
+  - [ ] print deleted bookmarks
+  - [ ] consistent output of `remove` subcommand
 - [x] push <number> to push path in stack
 - [x] write documentation
 - [x] change config file extension to `.toml`

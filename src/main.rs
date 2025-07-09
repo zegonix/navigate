@@ -214,12 +214,12 @@ fn add_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookma
 }
 
 fn remove_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookmarks, output: &mut Output) -> Result<()> {
-    bookmarks.remove_bookmark(&args.name)?;
+    let path = bookmarks.remove_bookmark(&args.name)?;
 
     if config.general.show_entries_on_bookmark {
         output.push_info(&bookmarks.to_formatted_string(config)?);
     } else {
-        output.push_info(&format!("remove bookmark `{}{}{}`.", generate_style_sequence(Some(STYLES.set.bold), None, None), args.name, RESET_SEQ));
+        output.push_info(&format!("removed bookmark `{}{}{}{}{}`.", generate_style_sequence(Some(STYLES.set.bold), None, None), args.name, config.format.bookmarks_separator, path.to_str().unwrap(), RESET_SEQ));
     }
     Ok(())
 }
