@@ -52,7 +52,7 @@ The following formats are supported:
 
 # todos
 
-- [x] replace `expect` statements in 'stack.rs' with actual error handling
+- [ ] replace `std::io::Error` with `thiserror::Error`
 - [x] option to pop several entries at a time and option to pop the entire stack
 - [x] drop stack
 - [x] config file
