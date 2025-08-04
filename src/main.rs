@@ -196,8 +196,8 @@ fn add_bookmarks(args: &BookmarkSubArgs, config: &Config, bookmarks: &mut Bookma
         Ok(value) => value,
         Err(error) => return Err(Error::other(error.to_string())),
     };
-    if args.name == "add" || args.name == "remove" {
-        return Err(Error::other("-- `add` & `remove` are subcommands and cant be used as bookmarknames"));
+    if args.name == "add" || args.name == "remove" || args.name == "clean" || args.name == "completions" {
+        return Err(Error::other("-- `add`, `remove`, `clean` and `completions` are subcommands and cant be used as bookmarknames"));
     }
     bookmarks.add_bookmark(&args.name, &path)?;
 
