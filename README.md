@@ -1,3 +1,5 @@
+**This repository has been moved to [another git server](https://git.krampf.ch/zegonix/navigate).**
+
 # navigate
 
 This repository implements a custom shell command for changing directories.
